@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>SECUREGATE 2.0</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="application-name" content="SECUREGATE"/>
+
+<!-- iOS / Apple -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SECUREGATE"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="apple-touch-startup-image" href="icon-512.png"/>
+
+<!-- Descripción -->
+<meta name="description" content="Sistema de Control de Acceso · Condominio Puerto Bahía"/>
+
+<!-- Service Worker registro -->
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f4f8;color:#1e293b;font-family:'IBM Plex Mono',monospace;min-height:100vh;font-size:13px}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)}
+.login-box{background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 8px 32px #00000030}
+.login-logo{text-align:center;margin-bottom:20px}
+.login-logo .ico{font-size:40px;display:block;margin-bottom:6px}
+.login-logo h1{font-size:20px;font-weight:800;color:#0f172a;letter-spacing:.08em}
+.login-logo p{font-size:13px;font-weight:800;color:#0369a1;letter-spacing:.06em;margin-top:4px}
+.role-select{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.role-btn{border:2px solid #e2e8f0;border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;transition:.15s;background:#f8fafc}
+.role-btn:hover,.role-btn.selected{border-color:#0284c7;background:#e0f2fe}
+.role-btn.selected-auth{border-color:#7c3aed;background:#f5f3ff}
+.role-btn .ri{font-size:20px;display:block;margin-bottom:4px}
+.role-btn .rn{font-size:9px;font-weight:700;color:#0f172a}
+.role-btn .rd{font-size:7px;color:#64748b;margin-top:2px}
+.pin-label{font-size:8px;color:#64748b;letter-spacing:.12em;margin-bottom:8px;display:block}
+.pin-display{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #cbd5e1;background:#f8fafc;transition:.2s}
+.pin-dot.filled{background:#0284c7;border-color:#0284c7}
+.pin-dot.filled-auth{background:#7c3aed;border-color:#7c3aed}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pin-key{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:#0f172a;transition:.15s;text-align:center}
+.pin-key:hover{background:#e0f2fe;border-color:#0284c7}
+.pin-key:active{transform:scale(.95)}
+.pin-del{background:#fff0f0;border-color:#fecaca;color:#dc2626}
+.login-err{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:8px 12px;font-size:9px;text-align:center;margin-bottom:10px;display:none}
+.auth-user-banner{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px;text-align:center;margin-bottom:12px;display:none}
+.auth-user-banner .aub-name{font-size:13px;font-weight:700;color:#7c3aed}
+.auth-user-banner .aub-label{font-size:8px;color:#94a3b8;margin-bottom:2px}
+header{background:#fff;border-bottom:1px solid #cbd5e1;padding:10px 14px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px #00000012}
+.hrow1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-icon.auth{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+.logo-text{font-size:14px;font-weight:700;letter-spacing:.08em;color:#0f172a}
+.logo-sub{font-size:13px;color:#0369a1;letter-spacing:.06em;font-weight:800}
+.sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#94a3b8;margin-left:5px;vertical-align:middle}
+.sync-dot.ok{background:#16a34a;box-shadow:0 0 6px #16a34a80}
+.sync-dot.syncing{background:#f59e0b;animation:pulse .8s infinite}
+.sync-dot.err{background:#dc2626}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.session-badge{background:#e0f2fe;border:1px solid #bae6fd;border-radius:20px;padding:3px 10px;font-size:8px;font-weight:700;color:#0284c7}
+.session-badge.admin{background:#fef3c7;border-color:#fde68a;color:#92400e}
+.session-badge.auth{background:#f5f3ff;border-color:#ddd6fe;color:#7c3aed}
+.logout-btn{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-family:inherit}
+nav{display:flex;gap:5px}
+.nb{flex:1;background:transparent;border:1px solid transparent;color:#94a3b8;padding:7px 2px;border-radius:6px;cursor:pointer;font-size:9px;letter-spacing:.05em;font-family:inherit;text-align:center;transition:.15s}
+.nb:hover{background:#f1f5f9;color:#475569}
+.nb.active{background:#e0f2fe;border-color:#bae6fd;color:#0284c7}
+main{padding:14px;max-width:700px;margin:0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}
+.stat{background:#fff;border-radius:9px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 1px 3px #0000000d}
+.slabel{font-size:8px;color:#94a3b8;letter-spacing:.12em;margin-bottom:3px}
+.sval{font-size:26px;font-weight:700;line-height:1;margin-bottom:2px}
+.ssub{font-size:8px;color:#94a3b8}
+.sdot{position:absolute;top:12px;right:12px;width:7px;height:7px;border-radius:50%}
+.sec{font-size:10px;font-weight:700;color:#0284c7;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.bar{width:3px;height:13px;border-radius:2px;display:inline-block;flex-shrink:0}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px #0000000d}
+.card-pad{padding:16px}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:420px}
+th{text-align:left;padding:9px 11px;font-size:8px;color:#94a3b8;letter-spacing:.1em;border-bottom:1px solid #e2e8f0;font-weight:700;background:#f8fafc}
+td{padding:10px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:11px}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:8px;font-weight:700}
+.bdot{width:5px;height:5px;border-radius:50%}
+.ben{background:#dcfce7;color:#16a34a}.ben .bdot{background:#16a34a;box-shadow:0 0 5px #16a34a80}
+.beg{background:#f1f5f9;color:#64748b}.beg .bdot{background:#94a3b8}
+.ttag{background:#e0f2fe;color:#0284c7;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600}
+.bp{background:linear-gradient(135deg,#0284c7,#0369a1);border:none;color:#fff;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;font-family:inherit;width:100%;margin-top:4px}
+.bp-auth{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+.bd{background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;color:#fff;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;font-family:inherit;width:100%;margin-top:4px}
+.bs{background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit}
+.be{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit}
+.bg{background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-family:inherit}
+.bc{background:#fff;border:1px solid #e2e8f0;color:#64748b;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:10px;font-family:inherit;width:100%;margin-top:4px}
+.fg{margin-bottom:10px}
+label{font-size:11px;color:#64748b;letter-spacing:.08em;display:block;margin-bottom:4px;font-weight:700}
+input,select,textarea{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;color:#1e293b;padding:9px 11px;font-size:11px;font-family:inherit;width:100%;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:#0284c7;background:#fff;box-shadow:0 0 0 3px #0284c720}
+textarea{resize:vertical;min-height:56px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.acts{display:flex;gap:5px}
+.admin-only{display:none}
+.photo-sec{margin-bottom:14px}
+.photo-lbl{font-size:11px;color:#64748b;letter-spacing:.08em;display:block;margin-bottom:6px;font-weight:700}
+.drop-zone{border:2px dashed #cbd5e1;border-radius:10px;background:#f8fafc;padding:18px 14px;text-align:center;transition:.2s;position:relative}
+.drop-zone.drag-over{border-color:#0284c7;background:#e0f2fe}
+.drop-zone.has-img{border:2px solid #0284c7;background:#fff;padding:8px}
+.drop-zone .pi{font-size:26px;margin-bottom:4px}
+.drop-zone p{font-size:9px;color:#64748b;margin-bottom:4px;line-height:1.5}
+.drop-zone .hint{font-size:8px;color:#94a3b8;margin-top:6px}
+.drop-preview{width:100%;max-height:160px;object-fit:contain;border-radius:6px;display:none}
+.drop-clear{position:absolute;top:6px;right:6px;background:#fee2e2;border:none;border-radius:4px;color:#dc2626;font-size:9px;padding:3px 7px;cursor:pointer;font-family:inherit;z-index:2}
+.cam-btn{background:linear-gradient(135deg,#0284c7,#0369a1);border:none;color:#fff;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:9px;font-weight:700;font-family:inherit;margin-top:8px;display:inline-flex;align-items:center;gap:5px}
+.admin-section{background:#fff;border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:16px}
+.admin-title{font-size:10px;font-weight:700;color:#92400e;letter-spacing:.1em;margin-bottom:14px}
+.auth-section{background:#fff;border:1px solid #ddd6fe;border-radius:10px;padding:16px;margin-bottom:16px}
+.auth-title{font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:.1em;margin-bottom:14px}
+.auth-user-row{display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;margin-bottom:7px}
+.auth-user-name{flex:1;font-size:11px;font-weight:600;color:#0f172a}
+.auth-user-pin{font-size:9px;color:#94a3b8;background:#e2e8f0;padding:2px 7px;border-radius:4px}
+.add-auth-row{display:grid;grid-template-columns:1fr 100px auto;gap:8px;margin-top:12px;align-items:end}
+.cam-mo{display:none;position:fixed;inset:0;background:#000000cc;z-index:300;align-items:center;justify-content:center}
+.cam-mo.open{display:flex}
+.cam-box{background:#0f172a;border-radius:14px;overflow:hidden;width:min(96vw,480px);max-height:90vh;display:flex;flex-direction:column}
+.cam-head{padding:12px 16px;border-bottom:1px solid #1e3a5f;display:flex;justify-content:space-between;align-items:center;background:#0a1220}
+.cam-title{font-size:11px;font-weight:700;color:#e2e8f0;letter-spacing:.06em}
+#camVideo{width:100%;border-radius:8px;background:#000;max-height:55vh}
+#camCanvas{display:none}
+.cam-body{padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cam-foot{padding:10px 16px;border-top:1px solid #1e3a5f;display:flex;gap:8px;background:#0a1220}
+.cam-snap{flex:1;background:linear-gradient(135deg,#0284c7,#0369a1);border:none;color:#fff;padding:10px;border-radius:7px;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer}
+.cam-cancel{background:transparent;border:1px solid #334155;color:#94a3b8;padding:10px 14px;border-radius:7px;font-size:10px;font-family:inherit;cursor:pointer}
+.mo{display:none;position:fixed;inset:0;background:#00000055;z-index:200;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.mbox{background:#fff;border:1px solid #e2e8f0;border-radius:12px 12px 0 0;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 -4px 24px #00000018}
+.mh{padding:14px 18px 12px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
+.mt{font-size:12px;font-weight:700;letter-spacing:.06em;color:#0f172a}
+.mb{padding:16px 18px}
+.mf{padding:12px 18px;border-top:1px solid #e2e8f0;display:flex;flex-direction:column;gap:7px;background:#f8fafc}
+.toast{display:none;position:fixed;bottom:70px;left:12px;right:12px;padding:11px 16px;border-radius:8px;font-size:10px;z-index:999;text-align:center}
+.toast.show{display:block}
+.tsuc{background:#dcfce7;border:1px solid #86efac;color:#15803d}
+.terr{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.di{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:11px}
+.dl{font-size:8px;color:#94a3b8;letter-spacing:.12em;margin-bottom:3px}
+.dv{font-size:11px;color:#1e293b;font-weight:600}
+.ibox{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:13px;margin-bottom:12px}
+.cbox{background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:11px;font-size:10px;color:#92400e}
+.cbox-red{background:#fff0f0;border:1px solid #fecaca;border-radius:8px;padding:11px;font-size:10px;color:#dc2626}
+.sbar{display:flex;gap:7px;margin-bottom:9px}.sbar input{flex:1}
+.filt{display:flex;gap:7px;margin-bottom:12px}
+.filt select{flex:1;font-size:10px;padding:7px 9px}
+.rcount{font-size:9px;color:#94a3b8;margin-bottom:9px}
+.empty{text-align:center;color:#94a3b8;padding:24px;font-size:10px}
+.id-thumb{width:36px;height:26px;object-fit:cover;border-radius:3px;border:1px solid #e2e8f0;cursor:pointer}
+.loading-overlay{position:fixed;inset:0;background:#f0f4f8;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#0284c7;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:10px;color:#64748b;letter-spacing:.1em}
+.exp-btns{display:flex;gap:8px;margin-bottom:12px}
+.exp-btns button{flex:1;border:none;color:#fff;padding:10px;border-radius:7px;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loader">
+  <div style="width:48px;height:48px;background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:4px">🛡️</div>
+  <div class="spinner"></div>
+  <div class="loading-txt">CARGANDO · SECUREGATE 2.0</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="display:none">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <span class="ico" id="loginIco">🛡️</span>
+        <h1>SECUREGATE 2.0</h1>
+        <p>CONDOMINIO PUERTO BAHÍA</p>
+      </div>
+      <div class="role-select">
+        <div class="role-btn selected" id="rb-user" onclick="selectRole('user')">
+          <span class="ri">🛡️</span>
+          <div class="rn">PUERTA</div>
+          <div class="rd">Registrar accesos</div>
+        </div>
+        <div class="role-btn" id="rb-auth" onclick="selectRole('auth')">
+          <span class="ri">🔒</span>
+          <div class="rn">AUTORIZACIÓN</div>
+          <div class="rd">Usuarios múltiples</div>
+        </div>
+        <div class="role-btn" id="rb-admin" onclick="selectRole('admin')">
+          <span class="ri">🔧</span>
+          <div class="rn">ADMIN</div>
+          <div class="rd">Control total</div>
+        </div>
+      </div>
+      <div class="auth-user-banner" id="authUserBanner">
+        <div class="aub-label">USUARIO IDENTIFICADO</div>
+        <div class="aub-name" id="authUserName">—</div>
+      </div>
+      <span class="pin-label">INGRESA TU PIN</span>
+      <div class="pin-display">
+        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      </div>
+      <div id="loginErr" class="login-err">PIN incorrecto. Inténtalo de nuevo.</div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinKey('1')">1</button>
+        <button class="pin-key" onclick="pinKey('2')">2</button>
+        <button class="pin-key" onclick="pinKey('3')">3</button>
+        <button class="pin-key" onclick="pinKey('4')">4</button>
+        <button class="pin-key" onclick="pinKey('5')">5</button>
+        <button class="pin-key" onclick="pinKey('6')">6</button>
+        <button class="pin-key" onclick="pinKey('7')">7</button>
+        <button class="pin-key" onclick="pinKey('8')">8</button>
+        <button class="pin-key" onclick="pinKey('9')">9</button>
+        <button class="pin-key pin-del" onclick="pinDel()">⌫</button>
+        <button class="pin-key" onclick="pinKey('0')">0</button>
+        <button class="pin-key" onclick="pinEnter()" style="background:#e0f2fe;border-color:#bae6fd;color:#0284c7">✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" style="display:none">
+<header>
+  <div class="hrow1">
+    <div class="logo">
+      <div class="logo-icon" id="headerIcon">🛡️</div>
+      <div>
+        <div class="logo-text">SECUREGATE 2.0</div>
+        <div class="logo-sub">CONDOMINIO PUERTO BAHÍA</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div id="clock" style="font-size:15px;font-weight:700;color:#0284c7">--:--</div>
+      <div id="date" style="font-size:8px;color:#94a3b8"></div>
+      <div style="margin-top:3px;display:flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span class="session-badge" id="sessionBadge">🛡️ PUERTA PRINCIPAL</span>
+        <span style="font-size:8px;color:#94a3b8">SYNC</span><span class="sync-dot" id="sdot"></span>
+        <button class="logout-btn" onclick="logout()">Salir</button>
+      </div>
+    </div>
+  </div>
+  <nav>
+    <button class="nb nb-dashboard active auth-hidden" onclick="sv('dashboard')" style="position:relative">📊 PANEL<span id="pendienteBadge" style="display:none;position:absolute;top:2px;right:2px;background:#dc2626;color:#fff;border-radius:50%;width:14px;height:14px;font-size:7px;font-weight:700;align-items:center;justify-content:center;line-height:14px">●</span></button>
+    <button class="nb nb-autorizaciones auth-hidden" onclick="sv('autorizaciones')" style="display:none">🔒 AUTOR.</button>
+    <button class="nb nb-registro" onclick="sv('registro')" style="display:none">📋 INGRESO</button>
+    <button class="nb nb-historial" onclick="sv('historial')">🗂 HISTORIAL</button>
+    <button class="nb nb-correo auth-hidden" onclick="sv('correo')" style="position:relative">📬 CORREO<span id="mailBadge" style="display:none;position:absolute;top:2px;right:2px;background:#dc2626;color:#fff;border-radius:50%;width:14px;height:14px;font-size:7px;font-weight:700;align-items:center;justify-content:center">0</span></button>
+    <button class="nb nb-admin admin-only" onclick="sv('admin')">⚙️ ADMIN</button>
+  </nav>
+</header>
+
+<main>
+<!-- DASHBOARD -->
+<div id="vd">
+  <!-- Stats -->
+  <div class="grid2">
+    <div class="stat" style="border-left:3px solid #16a34a"><div class="sdot" style="background:#16a34a;box-shadow:0 0 7px #16a34a80"></div><div class="slabel">EN RECINTO</div><div class="sval" style="color:#16a34a" id="s1">0</div><div class="ssub">activos</div></div>
+    <div class="stat" style="border-left:3px solid #0284c7"><div class="sdot" style="background:#0284c7;box-shadow:0 0 7px #0284c780"></div><div class="slabel">INGRESOS HOY</div><div class="sval" style="color:#0284c7" id="s2">0</div><div class="ssub">entradas</div></div>
+    <div class="stat" style="border-left:3px solid #7c3aed"><div class="sdot" style="background:#7c3aed;box-shadow:0 0 7px #7c3aed80"></div><div class="slabel">EGRESOS HOY</div><div class="sval" style="color:#7c3aed" id="s3">0</div><div class="ssub">salidas</div></div>
+    <div class="stat" style="border-left:3px solid #ea580c"><div class="sdot" style="background:#ea580c;box-shadow:0 0 7px #ea580c80"></div><div class="slabel">TOTAL</div><div class="sval" style="color:#ea580c" id="s4">0</div><div class="ssub">registros</div></div>
+  </div>
+
+  <!-- Formulario colapsable de ingreso -->
+  <div id="formCard" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px #0000000d">
+    <!-- Cabecera toggle -->
+    <div id="formToggle" onclick="toggleForm()" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:#f0f9ff;border-bottom:1px solid #e0f2fe">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="btnNuevoIngreso" style="font-size:13px;font-weight:800;color:#0284c7;letter-spacing:.06em">＋ REGISTRAR NUEVO INGRESO</span>
+        <div id="authBannerForm" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:3px 9px;font-size:9px;color:#7c3aed;font-weight:700">🔒 <span id="authBannerName"></span></div>
+      </div>
+      <span id="formArrow" style="font-size:14px;color:#0284c7;transition:transform .2s">▼</span>
+    </div>
+    <!-- Cuerpo del formulario -->
+    <div id="formBody" style="display:none;padding:16px">
+      <div class="frow">
+        <div class="fg"><label>NOMBRE COMPLETO *</label><input id="fn" placeholder="Nombre y apellido"/></div>
+        <div class="fg"><label>DOCUMENTO *</label><input id="fd" placeholder="V-12345678"/></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>TIPO *</label><select id="ft"><option value="">Seleccionar...</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor/Servicio</option><option>Contratista Externo</option><option>Empleado</option><option>Otro</option></select></div>
+        <div class="fg"><label>PLACA *</label><input id="fp" placeholder="ABC-123"/></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>TORRE / ÁREA *</label><select id="ftr"><option value="">Seleccionar...</option><option>Apartamentos Valle Alto</option><option>Apartamentos Valle</option><option>Villa Montaña</option><option>Villa Marina</option><option>Villa Playa</option><option>La Marina</option><option>Hotel Bannister</option><option>Administración HMS</option><option>Proyecto Bancalari</option><option>Otras</option></select></div>
+        <div class="fg"><label>NÚMERO DE PROPIEDAD *</label><input id="fpi" placeholder="Ej. 4B"/></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>RAZÓN DE ENTRADA *</label><select id="fm"><option value="">Seleccionar...</option><option>Acceso Frecuente Autorizado</option><option>Invitado de Propietario</option><option>Proveedor de Contratista</option><option>Proveedor del Hotel</option><option>Proveedor Marina</option><option>Proveedor de Condominio</option><option>Proveedor Proyecto Bancalari</option><option>Trabajos de Construcción</option><option>Trabajo de Mantenimiento</option><option>Reservación de Hotel</option><option>Reservación Independiente</option><option>Excursión Marina</option><option>Otros</option></select></div>
+        <div class="fg"><label id="lblOficial">OFICIAL DE TURNO *</label><input id="fg2" placeholder="Nombre del oficial"/></div>
+      </div>
+      <!-- Ventana de acceso Auth -->
+      <div id="authWindowBlock" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:.08em;margin-bottom:10px">🗓 VENTANA DE ACCESO AUTORIZADO</div>
+        <div class="frow" style="margin-bottom:0">
+          <div class="fg" style="margin-bottom:0"><label style="color:#7c3aed">LLEGADA PERMITIDA *</label><input type="datetime-local" id="fAuthDesde" style="border-color:#ddd6fe"/></div>
+          <div class="fg" style="margin-bottom:0"><label style="color:#7c3aed">SALIDA LÍMITE *</label><input type="datetime-local" id="fAuthHasta" style="border-color:#ddd6fe"/></div>
+        </div>
+        <div style="font-size:8px;color:#94a3b8;margin-top:8px">⚠️ El acceso quedará bloqueado fuera de esta ventana. Pasada la hora límite el registro mostrará <strong>VENCIDO</strong>.</div>
+      </div>
+      <!-- Foto -->
+      <div class="photo-sec">
+        <span class="photo-lbl">FOTO DEL ID <span style="font-weight:400;color:#94a3b8;font-size:9px">(opcional)</span></span>
+        <div class="drop-zone" id="dz-f" ondragover="dzDrag(event,'f')" ondragleave="dzLeave('f')" ondrop="dzDrop(event,'f')">
+          <div id="dz-f-ph"><div class="pi">🪪</div><p><strong>Arrastra</strong> la foto aquí o <strong>Ctrl+V</strong> para pegar</p>
+            <button class="cam-btn" onclick="openCam('f')">📷 Usar Cámara</button>
+            <div class="hint">Compatible con Chromebook · PC · Móvil</div>
+          </div>
+          <img id="dz-f-img" class="drop-preview"/>
+          <button class="drop-clear" id="dz-f-clr" style="display:none" onclick="clearDz('f')">✕ Quitar</button>
+        </div>
+      </div>
+      <!-- Observaciones -->
+      <div class="fg"><label>OBSERVACIONES <span style="font-weight:400;color:#94a3b8;font-size:9px">(opcional)</span></label><textarea id="fo" placeholder="Novedades, equipos que ingresa..."></textarea></div>
+      <button class="bp" id="btnRegistrar" onclick="regIngreso()">✅ REGISTRAR INGRESO</button>
+      <button class="bc" onclick="limpiar()">LIMPIAR FORMULARIO</button>
+    </div>
+  </div>
+
+  <!-- Visitantes en recinto -->
+  <div class="sec"><span class="bar" style="background:#16a34a"></span>VISITANTES EN RECINTO</div>
+  <div class="card"><div class="tscroll"><table><thead><tr><th>NOMBRE</th><th>TIPO</th><th>UNIDAD</th><th>ESTADO</th><th>ACCIÓN</th></tr></thead><tbody id="tbd"></tbody></table></div></div>
+</div>
+
+<!-- INGRESO AUTH -->
+<div id="vr" style="display:none">
+  <div class="sec" style="color:#7c3aed"><span class="bar" style="background:#7c3aed"></span>🔒 NUEVO INGRESO POR AUTORIZACIÓN</div>
+  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:10px;color:#7c3aed;font-weight:700">
+    🔒 SESIÓN DE AUTORIZACIÓN: <span id="authBannerName2"></span>
+  </div>
+  <div class="card card-pad" style="border-color:#ddd6fe">
+    <div class="frow">
+      <div class="fg"><label>NOMBRE COMPLETO *</label><input id="rn" placeholder="Nombre y apellido"/></div>
+      <div class="fg"><label>DOCUMENTO *</label><input id="rd" placeholder="V-12345678"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>TIPO *</label><select id="rt"><option value="">Seleccionar...</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor/Servicio</option><option>Contratista Externo</option><option>Empleado</option><option>Otro</option></select></div>
+      <div class="fg"><label>PLACA *</label><input id="rp" placeholder="ABC-123"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>TORRE / ÁREA *</label><select id="rtr"><option value="">Seleccionar...</option><option>Apartamentos Valle Alto</option><option>Apartamentos Valle</option><option>Villa Montaña</option><option>Villa Marina</option><option>Villa Playa</option><option>La Marina</option><option>Hotel Bannister</option><option>Administración HMS</option><option>Proyecto Bancalari</option><option>Otras</option></select></div>
+      <div class="fg"><label>NÚMERO DE PROPIEDAD *</label><input id="rpi" placeholder="Ej. 4B"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>RAZÓN DE ENTRADA *</label><select id="rm"><option value="">Seleccionar...</option><option>Acceso Frecuente Autorizado</option><option>Invitado de Propietario</option><option>Proveedor de Contratista</option><option>Proveedor del Hotel</option><option>Proveedor Marina</option><option>Proveedor de Condominio</option><option>Proveedor Proyecto Bancalari</option><option>Trabajos de Construcción</option><option>Trabajo de Mantenimiento</option><option>Reservación de Hotel</option><option>Reservación Independiente</option><option>Excursión Marina</option><option>Otros</option></select></div>
+      <div class="fg"><label>AUTORIZADO POR *</label><input id="rg" readonly style="background:#f5f3ff;border-color:#ddd6fe;color:#7c3aed"/></div>
+    </div>
+    <!-- Ventana de acceso Auth -->
+    <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:.08em;margin-bottom:10px">🗓 VENTANA DE ACCESO AUTORIZADO</div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="fg" style="margin-bottom:0"><label style="color:#7c3aed">LLEGADA PERMITIDA *</label><input type="datetime-local" id="rAuthDesde" style="border-color:#ddd6fe"/></div>
+        <div class="fg" style="margin-bottom:0"><label style="color:#7c3aed">SALIDA LÍMITE *</label><input type="datetime-local" id="rAuthHasta" style="border-color:#ddd6fe"/></div>
+      </div>
+      <div style="font-size:8px;color:#94a3b8;margin-top:8px">⚠️ El acceso quedará bloqueado fuera de esta ventana.</div>
+    </div>
+    <!-- Foto -->
+    <div class="photo-sec">
+      <span class="photo-lbl">FOTO DEL ID <span style="font-weight:400;color:#94a3b8;font-size:9px">(opcional)</span></span>
+      <div class="drop-zone" id="dz-r" ondragover="dzDrag(event,'r')" ondragleave="dzLeave('r')" ondrop="dzDrop(event,'r')" style="border-color:#ddd6fe">
+        <div id="dz-r-ph"><div class="pi">🪪</div><p><strong>Arrastra</strong> la foto aquí o <strong>Ctrl+V</strong> para pegar</p>
+          <button class="cam-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)" onclick="openCam('r')">📷 Usar Cámara</button>
+        </div>
+        <img id="dz-r-img" class="drop-preview"/>
+        <button class="drop-clear" id="dz-r-clr" style="display:none" onclick="clearDz('r')">✕ Quitar</button>
+      </div>
+    </div>
+    <div class="fg"><label>OBSERVACIONES <span style="font-weight:400;color:#94a3b8;font-size:9px">(opcional)</span></label><textarea id="ro" placeholder="Novedades, equipos que ingresa..."></textarea></div>
+    <button class="bp bp-auth" onclick="regIngresoAuth()">✅ REGISTRAR INGRESO</button>
+    <button class="bc" onclick="limpiarAuth()">LIMPIAR FORMULARIO</button>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="vh" style="display:none">
+  <div class="sbar"><input id="si" placeholder="🔍 Nombre, documento, placa..." oninput="rh()"/></div>
+  <div class="filt">
+    <select id="fe" onchange="rh()"><option>Todos</option><option>En Recinto</option><option>Egresado</option></select>
+    <select id="fti" onchange="rh()"><option>Todos</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor/Servicio</option><option>Contratista Externo</option><option>Empleado</option></select>
+  </div>
+  <div class="card card-pad" style="margin-bottom:12px">
+    <div style="font-size:10px;font-weight:700;color:#0284c7;letter-spacing:.08em;margin-bottom:10px">📅 FILTRAR POR FECHA Y HORA</div>
+    <div class="frow" style="margin-bottom:6px">
+      <div class="fg" style="margin-bottom:0"><label>DESDE</label><input type="datetime-local" id="fdesde" onchange="rh()"/></div>
+      <div class="fg" style="margin-bottom:0"><label>HASTA</label><input type="datetime-local" id="fhasta" onchange="rh()"/></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="bg" onclick="setRango('hoy')">Hoy</button>
+      <button class="bg" onclick="setRango('ayer')">Ayer</button>
+      <button class="bg" onclick="setRango('semana')">Esta semana</button>
+      <button class="bg" onclick="setRango('mes')">Este mes</button>
+      <button class="bg" onclick="setRango('todo')">Todo</button>
+    </div>
+  </div>
+  <div class="rcount" id="rc"></div>
+  <div class="exp-btns">
+    <button onclick="exportCSV()" style="background:linear-gradient(135deg,#16a34a,#15803d)">📊 EXPORTAR CSV</button>
+    <button onclick="exportPDF()" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">📄 EXPORTAR PDF</button>
+  </div>
+  <div class="card"><div class="tscroll"><table><thead><tr><th>#</th><th>NOMBRE</th><th>TIPO</th><th>ENTRADA</th><th>SALIDA</th><th>ID</th><th>ESTADO</th><th>ACC</th></tr></thead><tbody id="tbh"></tbody></table></div></div>
+</div>
+
+<!-- AUTORIZACIONES (solo Puerta/Admin) -->
+<div id="vaut" style="display:none">
+  <div class="sec" style="color:#7c3aed"><span class="bar" style="background:#7c3aed"></span>🔒 INGRESOS POR AUTORIZACIÓN</div>
+  <div class="sbar"><input id="si-aut" placeholder="🔍 Nombre, documento, placa..." oninput="raut()"/></div>
+  <div class="rcount" id="rc-aut"></div>
+  <div class="card"><div class="tscroll">
+    <table><thead style="background:#f5f3ff">
+      <tr>
+        <th style="color:#7c3aed">#</th>
+        <th style="color:#7c3aed">NOMBRE</th>
+        <th style="color:#7c3aed">TIPO</th>
+        <th style="color:#7c3aed">ENTRADA</th>
+        <th style="color:#7c3aed">SALIDA</th>
+        <th style="color:#7c3aed">AUTORIZADO POR</th>
+        <th style="color:#7c3aed">ESTADO</th>
+        <th style="color:#7c3aed">ACC</th>
+      </tr>
+    </thead>
+    <tbody id="tb-aut"></tbody></table>
+  </div></div>
+</div>
+
+<!-- ADMIN -->
+<div id="va" style="display:none">
+  <div class="sec"><span class="bar" style="background:#f59e0b"></span>⚙️ PANEL DE ADMINISTRACIÓN</div>
+
+  <!-- PINs básicos -->
+  <div class="admin-section">
+    <div class="admin-title">🔑 PINs DE ACCESO BÁSICOS</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <label style="min-width:140px;margin:0">PIN PUERTA PRINCIPAL</label>
+      <input id="pinUser" type="password" maxlength="4" placeholder="••••" style="max-width:100px;letter-spacing:.2em;text-align:center"/>
+      <button class="be" onclick="savePin('user')">Guardar</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="min-width:140px;margin:0">PIN ADMINISTRADOR</label>
+      <input id="pinAdmin" type="password" maxlength="4" placeholder="••••" style="max-width:100px;letter-spacing:.2em;text-align:center"/>
+      <button class="be" onclick="savePin('admin')">Guardar</button>
+    </div>
+    <div style="font-size:8px;color:#94a3b8;margin-top:8px">⚠️ Defaults: Puerta <strong>1234</strong> · Admin <strong>9999</strong> · Auth Demo <strong>0000</strong></div>
+  </div>
+
+  <!-- Usuarios de Autorización -->
+  <div class="auth-section">
+    <div class="auth-title">🔒 USUARIOS DE AUTORIZACIÓN</div>
+    <div style="font-size:9px;color:#64748b;margin-bottom:12px">Cada usuario tiene su propio PIN independiente. Al ingresar, el sistema lo identifica automáticamente.</div>
+    <div id="authUsersList"></div>
+    <div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px">
+      <div style="font-size:9px;font-weight:700;color:#7c3aed;margin-bottom:8px">➕ AGREGAR NUEVO USUARIO</div>
+      <div class="add-auth-row">
+        <div class="fg" style="margin:0"><label>NOMBRE</label><input id="newAuthName" placeholder="Ej. María González"/></div>
+        <div class="fg" style="margin:0"><label>PIN (4 dígitos)</label><input id="newAuthPin" type="password" maxlength="4" placeholder="••••" style="letter-spacing:.2em;text-align:center"/></div>
+        <button class="bp bp-auth" style="margin:0;width:auto;padding:9px 14px" onclick="addAuthUser()">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gestión registros -->
+  <div class="admin-section">
+    <div class="admin-title">🗂 GESTIÓN DE REGISTROS</div>
+    <div class="sbar"><input id="siadmin" placeholder="🔍 Buscar registro..." oninput="ra()"/></div>
+    <div class="rcount" id="rcadmin"></div>
+    <div class="card"><div class="tscroll"><table><thead><tr><th>#</th><th>NOMBRE</th><th>TIPO</th><th>ENTRADA</th><th>ESTADO</th><th>ACCIONES</th></tr></thead><tbody id="tbadmin"></tbody></table></div></div>
+  </div>
+
+  <div class="admin-section" style="border-color:#fecaca">
+    <div class="admin-title" style="color:#dc2626">🗑 ZONA DE PELIGRO</div>
+    <div class="cbox-red" style="margin-bottom:12px">⚠️ Esta acción es irreversible.</div>
+    <button class="bd" onclick="clearAll()">🗑 BORRAR TODOS LOS REGISTROS</button>
+  </div>
+</div>
+
+<!-- CORREO -->
+<div id="vc" style="display:none">
+  <div class="sec"><span class="bar" style="background:#0284c7"></span>📬 BANDEJA DE ENTRADA</div>
+
+  <!-- Cabecera cuenta -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px #0000000d">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#ea4335,#fbbc04);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">📧</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#0f172a">CORREO · CONDOMINIO PUERTO BAHÍA</div>
+        <div id="mailAccountLabel" style="font-size:9px;color:#94a3b8">Conectando...</div>
+      </div>
+    </div>
+    <button onclick="loadMail(true)" id="mailRefreshBtn" style="background:#e0f2fe;border:1px solid #bae6fd;color:#0284c7;padding:6px 12px;border-radius:6px;font-size:9px;font-weight:700;font-family:inherit;cursor:pointer">🔄 ACTUALIZAR</button>
+  </div>
+
+  <!-- Buscador -->
+  <div class="sbar" style="margin-bottom:12px">
+    <input id="mailSearch" placeholder="🔍 Buscar en correos..." oninput="filterMail()"/>
+  </div>
+
+  <!-- Estado de carga -->
+  <div id="mailLoader" style="text-align:center;padding:32px;color:#94a3b8;font-size:10px">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    CARGANDO CORREOS...
+  </div>
+
+  <!-- Lista de correos -->
+  <div id="mailList" style="display:none"></div>
+
+  <!-- Error -->
+  <div id="mailError" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:16px;text-align:center;font-size:10px;color:#dc2626"></div>
+
+  <!-- Modal lectura correo -->
+  <div id="mailReadModal" style="display:none;position:fixed;inset:0;background:#00000066;z-index:300;align-items:flex-end;justify-content:center">
+    <div style="background:#fff;border-radius:14px 14px 0 0;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 24px #00000022">
+      <div style="padding:14px 18px 12px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;position:sticky;top:0;z-index:1">
+        <div style="font-size:11px;font-weight:700;color:#0f172a;letter-spacing:.04em" id="mailReadSubject">—</div>
+        <button onclick="closeMailRead()" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit">✕</button>
+      </div>
+      <div style="padding:14px 18px">
+        <div id="mailReadMeta" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:9px;color:#64748b;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+        <div id="mailReadBody" style="font-size:11px;color:#1e293b;line-height:1.7;white-space:pre-wrap;word-break:break-word"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="modal">
+  <div class="mbox">
+    <div class="mh"><div class="mt" id="mtit"></div><button class="bg" onclick="cm()" style="padding:4px 9px;font-size:12px">✕</button></div>
+    <div class="mb" id="mbody"></div>
+    <div class="mf" id="mfoot"></div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div class="cam-mo" id="camModal">
+  <div class="cam-box">
+    <div class="cam-head"><span class="cam-title">📷 CAPTURAR FOTO DEL ID</span><button class="cam-cancel" onclick="closeCam()" style="padding:3px 9px;font-size:11px">✕</button></div>
+    <div class="cam-body">
+      <video id="camVideo" autoplay playsinline></video>
+      <canvas id="camCanvas"></canvas>
+      <div id="camErr" style="display:none;color:#fca5a5;font-size:9px;text-align:center;padding:8px">⚠️ Cámara no disponible. Usa arrastrar o Ctrl+V.</div>
+    </div>
+    <div class="cam-foot"><button class="cam-snap" onclick="snapPhoto()">📸 CAPTURAR</button><button class="cam-cancel" onclick="closeCam()">CANCELAR</button></div>
+  </div>
+</div>
+
+<div class="cam-mo" id="imgModal" onclick="this.classList.remove('open')">
+  <div style="background:#000;border-radius:12px;padding:8px;max-width:96vw">
+    <img id="imgBig" style="max-width:90vw;max-height:80vh;border-radius:8px;display:block"/>
+    <p style="text-align:center;color:#94a3b8;font-size:9px;margin-top:6px;font-family:monospace">Toca para cerrar</p>
+  </div>
+</div>
+
+<!-- EXPORT DIALOG -->
+<div class="cam-mo" id="expModal">
+  <div style="background:#fff;border-radius:14px;width:min(94vw,360px);overflow:hidden;box-shadow:0 8px 32px #00000030">
+    <div style="background:#0284c7;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;font-weight:800;color:#fff;letter-spacing:.06em">¿CÓMO DESEAS EXPORTAR?</span>
+      <button onclick="closeExportDialog()" style="background:transparent;border:none;color:#fff;font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+      <button onclick="doExport('download')" style="background:linear-gradient(135deg,#0284c7,#0369a1);border:none;color:#fff;padding:14px;border-radius:9px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">⬇️ DESCARGAR ARCHIVO</button>
+      <button onclick="doExport('email')" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;padding:14px;border-radius:9px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">✉️ ENVIAR POR CORREO</button>
+      <button onclick="closeExportDialog()" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:10px;border-radius:7px;font-size:10px;font-family:inherit;cursor:pointer">CANCELAR</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var STORE_KEY='sg-registros3';
+var PINS_KEY='sg-pins3';
+var R=[],nid=1,cv='dashboard';
+var camStream=null,camTarget='f';
+var photoData={f:null,m:null};
+var lastHash='',lastPinHash='';
+var activePasteTarget='f';
+var currentRole=null,currentAuthUser=null,selectedRole='user',pinInput='';
+var PINS={user:'1234',admin:'9999',authUsers:[]};
+var _exportType='';
+
+// ── LOGIN ────────────────────────────────────────────────
+function selectRole(r){
+  selectedRole=r;
+  ['user','auth','admin'].forEach(function(x){
+    document.getElementById('rb-'+x).classList.remove('selected','selected-auth');
+  });
+  document.getElementById('rb-'+r).classList.add(r==='auth'?'selected-auth':'selected');
+  pinInput='';currentAuthUser=null;
+  updatePinDisplay();
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('authUserBanner').style.display='none';
+  document.getElementById('loginIco').textContent=r==='auth'?'🔒':r==='admin'?'🔧':'🛡️';
+}
+
+function pinKey(k){
+  if(pinInput.length<4){
+    pinInput+=k;
+    updatePinDisplay();
+    // Para auth: buscar usuario en tiempo real al completar 4 dígitos
+    if(selectedRole==='auth'&&pinInput.length===4){
+      var demoMatch=pinInput==='0000';
+      var found=demoMatch?{nombre:'DEMO',pin:'0000'}:PINS.authUsers.find(function(u){return u.pin===pinInput;});
+      if(found){
+        currentAuthUser=found;
+        document.getElementById('authUserBanner').style.display='block';
+        document.getElementById('authUserName').textContent=found.nombre+(demoMatch?' 🧪':'');
+      } else {
+        document.getElementById('authUserBanner').style.display='none';
+      }
+    }
+    if(pinInput.length===4)setTimeout(pinEnter,180);
+  }
+}
+function pinDel(){
+  pinInput=pinInput.slice(0,-1);
+  updatePinDisplay();
+  document.getElementById('authUserBanner').style.display='none';
+  currentAuthUser=null;
+}
+function updatePinDisplay(){
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    dot.className='pin-dot'+(i<pinInput.length?(selectedRole==='auth'?' filled-auth':' filled'):'');
+  }
+}
+function pinEnter(){
+  var ok=false;
+  if(selectedRole==='user'&&pinInput===PINS.user){currentRole='user';ok=true;}
+  else if(selectedRole==='admin'&&pinInput===PINS.admin){currentRole='admin';ok=true;}
+  else if(selectedRole==='auth'){
+    if(pinInput==='0000'){currentRole='auth';currentAuthUser={nombre:'DEMO',pin:'0000'};ok=true;}
+    else{var found=PINS.authUsers.find(function(u){return u.pin===pinInput;});
+    if(found){currentRole='auth';currentAuthUser=found;ok=true;}}
+  }
+  if(ok){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    applyRole();rd();
+  } else {
+    document.getElementById('loginErr').style.display='block';
+    document.getElementById('authUserBanner').style.display='none';
+    currentAuthUser=null;pinInput='';updatePinDisplay();
+    setTimeout(function(){document.getElementById('loginErr').style.display='none';},2000);
+  }
+}
+
+function applyRole(){
+  var isAdmin=currentRole==='admin';
+  var isAuth=currentRole==='auth';
+  document.querySelectorAll('.admin-only').forEach(function(el){el.style.display=isAdmin?'':'none';});
+  // Nav según rol
+  var btnDash=document.querySelector('.nb-dashboard');
+  var btnAut=document.querySelector('.nb-autorizaciones');
+  var btnCorreo=document.querySelector('.nb-correo');
+  var btnRegistro=document.querySelector('.nb-registro');
+  if(isAuth){
+    if(btnDash)btnDash.style.display='none';
+    if(btnAut)btnAut.style.display='none';
+    if(btnCorreo)btnCorreo.style.display='none';
+    if(btnRegistro)btnRegistro.style.display='';
+    var rg=document.getElementById('rg');if(rg)rg.value=currentAuthUser.nombre;
+    var ab2=document.getElementById('authBannerName2');if(ab2)ab2.textContent=currentAuthUser.nombre;
+    // Precargar ventana de acceso: hoy 08:00 → 17:00
+    var hoy=new Date();
+    var yy=hoy.getFullYear(),mm=pad(hoy.getMonth()+1),dd=pad(hoy.getDate());
+    var desde=document.getElementById('rAuthDesde');
+    var hasta=document.getElementById('rAuthHasta');
+    if(desde&&!desde.value)desde.value=yy+'-'+mm+'-'+dd+'T08:00';
+    if(hasta&&!hasta.value)hasta.value=yy+'-'+mm+'-'+dd+'T17:00';
+    sv('registro');
+  } else {
+    if(btnDash)btnDash.style.display='';
+    if(btnAut)btnAut.style.display='';
+    if(btnCorreo)btnCorreo.style.display='';
+    if(btnRegistro)btnRegistro.style.display='none';
+  }
+  var badge=document.getElementById('sessionBadge');
+  var icon=document.getElementById('headerIcon');
+  if(isAdmin){badge.textContent='🔧 ADMIN';badge.className='session-badge admin';icon.textContent='🔧';icon.className='logo-icon';}
+  else if(isAuth){badge.textContent='🔒 '+currentAuthUser.nombre;badge.className='session-badge auth';icon.textContent='🔒';icon.className='logo-icon auth';}
+  else{badge.textContent='🛡️ PUERTA PRINCIPAL';badge.className='session-badge';icon.textContent='🛡️';icon.className='logo-icon';}
+  var lblOficial=document.getElementById('lblOficial');
+  var fg2=document.getElementById('fg2');
+  var authWin=document.getElementById('authWindowBlock');
+  var formToggleEl=document.getElementById('formToggle');
+  var formHdr=document.getElementById('btnNuevoIngreso');
+  if(isAuth){
+    lblOficial.textContent='AUTORIZADO POR: *';
+    fg2.value=currentAuthUser.nombre;fg2.readOnly=true;
+    fg2.style.background='#f5f3ff';fg2.style.borderColor='#ddd6fe';fg2.style.color='#7c3aed';
+    document.getElementById('authBannerForm').style.display='flex';
+    document.getElementById('authBannerName').textContent=currentAuthUser.nombre;
+    document.getElementById('btnRegistrar').className='bp bp-auth';
+    if(formHdr){formHdr.style.color='#7c3aed';}
+    if(formToggleEl){formToggleEl.style.background='#f5f3ff';formToggleEl.style.borderBottomColor='#ddd6fe';}
+    if(authWin)authWin.style.display='block';
+  } else {
+    lblOficial.textContent='OFICIAL DE TURNO *';
+    fg2.value='';fg2.readOnly=false;
+    fg2.style.background='';fg2.style.borderColor='';fg2.style.color='';
+    document.getElementById('authBannerForm').style.display='none';
+    document.getElementById('btnRegistrar').className='bp';
+    if(formHdr){formHdr.style.color='#0284c7';}
+    if(formToggleEl){formToggleEl.style.background='';formToggleEl.style.borderBottomColor='';}
+    if(authWin)authWin.style.display='none';
+  }
+}
+
+function logout(){
+  currentRole=null;currentAuthUser=null;pinInput='';selectedRole='user';
+  selectRole('user');
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='block';
+}
+
+// ── PINS & AUTH USERS ────────────────────────────────────
+async function loadPins(){
+  try{var raw=localStorage.getItem(PINS_KEY);if(raw)PINS=JSON.parse(raw);}catch(e){}
+  if(!PINS.authUsers)PINS.authUsers=[];
+}
+async function savePins(){try{localStorage.setItem(PINS_KEY,JSON.stringify(PINS));}catch(e){}}
+async function savePin(role){
+  var val=document.getElementById(role==='user'?'pinUser':'pinAdmin').value.trim();
+  if(val.length!==4||!/^\d{4}$/.test(val)){toast('El PIN debe tener exactamente 4 dígitos','err');return;}
+  PINS[role]=val;await savePins();
+  document.getElementById(role==='user'?'pinUser':'pinAdmin').value='';
+  toast('PIN actualizado');
+}
+
+function renderAuthUsers(){
+  var list=document.getElementById('authUsersList');
+  if(!PINS.authUsers.length){list.innerHTML='<div style="font-size:9px;color:#94a3b8;padding:8px;text-align:center">No hay usuarios de autorización registrados</div>';return;}
+  list.innerHTML=PINS.authUsers.map(function(u){
+    return '<div class="auth-user-row">'
+      +'<span style="font-size:16px">🔒</span>'
+      +'<span class="auth-user-name">'+u.nombre+'</span>'
+      +'<span class="auth-user-pin">PIN: ••••</span>'
+      +'<button class="be" onclick="editAuthPin('+u.id+')" style="font-size:8px;padding:4px 8px">✏️ PIN</button>'
+      +'<button class="bg" onclick="removeAuthUser('+u.id+')" style="color:#dc2626;border-color:#fca5a5;font-size:8px;padding:4px 8px">🗑</button>'
+      +'</div>';
+  }).join('');
+}
+
+async function addAuthUser(){
+  var nombre=document.getElementById('newAuthName').value.trim();
+  var pin=document.getElementById('newAuthPin').value.trim();
+  if(!nombre){toast('Ingresa el nombre del usuario','err');return;}
+  if(pin.length!==4||!/^\d{4}$/.test(pin)){toast('El PIN debe tener exactamente 4 dígitos','err');return;}
+  var pinExists=PINS.authUsers.find(function(u){return u.pin===pin;});
+  if(pinExists){toast('Ese PIN ya está en uso por otro usuario','err');return;}
+  var newId=(PINS.authUsers.length?Math.max.apply(null,PINS.authUsers.map(function(u){return u.id;}))+1:1);
+  PINS.authUsers.push({id:newId,nombre:nombre,pin:pin});
+  await savePins();
+  document.getElementById('newAuthName').value='';
+  document.getElementById('newAuthPin').value='';
+  renderAuthUsers();
+  toast('Usuario '+nombre+' agregado');
+}
+
+function editAuthPin(id){
+  var user=PINS.authUsers.find(function(u){return u.id===id;});
+  if(!user)return;
+  document.getElementById('mtit').textContent='✏️ CAMBIAR PIN · '+user.nombre;
+  document.getElementById('mbody').innerHTML='<div class="fg"><label>NUEVO PIN (4 dígitos)</label><input id="editPin" type="password" maxlength="4" placeholder="••••" style="letter-spacing:.2em;text-align:center;max-width:150px"/></div>';
+  document.getElementById('mfoot').innerHTML='<button class="bp bp-auth" onclick="saveAuthPin('+id+')">💾 GUARDAR PIN</button><button class="bc" onclick="cm()">CANCELAR</button>';
+  document.getElementById('modal').classList.add('open');
+}
+
+async function saveAuthPin(id){
+  var val=document.getElementById('editPin').value.trim();
+  if(val.length!==4||!/^\d{4}$/.test(val)){toast('El PIN debe tener exactamente 4 dígitos','err');return;}
+  var conflict=PINS.authUsers.find(function(u){return u.pin===val&&u.id!==id;});
+  if(conflict){toast('Ese PIN ya está en uso por '+conflict.nombre,'err');return;}
+  PINS.authUsers=PINS.authUsers.map(function(u){return u.id===id?{id:u.id,nombre:u.nombre,pin:val}:u;});
+  await savePins();cm();renderAuthUsers();toast('PIN actualizado');
+}
+
+async function removeAuthUser(id){
+  var user=PINS.authUsers.find(function(u){return u.id===id;});
+  if(!user||!confirm('¿Eliminar usuario '+user.nombre+'?'))return;
+  PINS.authUsers=PINS.authUsers.filter(function(u){return u.id!==id;});
+  await savePins();renderAuthUsers();toast('Usuario eliminado');
+}
+
+// ── SYNC ────────────────────────────────────────────────
+function setSyncDot(s){var d=document.getElementById('sdot');if(d)d.className='sync-dot '+s;}
+async function saveToStore(data){
+  setSyncDot('syncing');
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(data));setSyncDot('ok');}
+  catch(e){setSyncDot('err');}
+}
+async function loadFromStore(){try{var raw=localStorage.getItem(STORE_KEY);if(raw)return JSON.parse(raw);}catch(e){}return null;}
+async function syncPoll(){
+  try{
+    var raw=localStorage.getItem(STORE_KEY);
+    if(raw){var h=raw.substring(0,80);if(h!==lastHash){lastHash=h;var p=JSON.parse(raw);if(p&&p.records){R=p.records;nid=p.nid||R.length+1;if(cv==='dashboard')rd();if(cv==='historial')rh();if(cv==='autorizaciones')raut();if(cv==='admin')ra();}}setSyncDot('ok');}
+    var rawp=localStorage.getItem(PINS_KEY);
+    if(rawp){var hp=rawp.substring(0,40);if(hp!==lastPinHash){lastPinHash=hp;PINS=JSON.parse(rawp);if(!PINS.authUsers)PINS.authUsers=[];}}
+  }catch(e){setSyncDot('err');}
+}
+async function init(){
+  await loadPins();
+  var data=await loadFromStore();
+  if(data&&data.records&&data.records.length>0){R=data.records;nid=data.nid||R.length+1;}
+  else{
+    R=[
+      {id:1,nombre:"Carlos Mendoza",doc:"V-12345678",tipo:"Visita",unidad:"Apartamentos Valle - 4B",placa:"ABC-123",motivo:"Invitado de Propietario",entrada:"2026-03-03T08:15:00",salida:"2026-03-03T10:30:00",estado:"Egresado",guardia:"Oficial Demo",obs:"",foto:null},
+      {id:2,nombre:"Ana Lucía Torres",doc:"V-18765432",tipo:"Visita",unidad:"Apartamentos Valle Alto - 12A",placa:"XYZ-456",motivo:"Invitado de Propietario",entrada:"2026-03-03T10:00:00",salida:null,estado:"En Recinto",guardia:"Oficial Demo",obs:"",foto:null}
+    ];
+    nid=3;await saveToStore({records:R,nid:nid});
+  }
+  document.getElementById('loader').style.display='none';
+  document.getElementById('loginScreen').style.display='block';
+  setSyncDot('ok');
+  setInterval(syncPoll,8000);
+}
+
+// ── CLOCK ────────────────────────────────────────────────
+setInterval(function(){
+  var n=new Date();
+  var cl=document.getElementById('clock'),dt=document.getElementById('date');
+  if(cl)cl.textContent=n.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(dt)dt.textContent=n.toLocaleDateString('es-VE',{weekday:'short',day:'2-digit',month:'short'}).toUpperCase();
+},1000);
+
+// ── VISTAS ───────────────────────────────────────────────
+function sv(v){
+  if(v==='admin'&&currentRole!=='admin')return;
+  if(currentRole==='auth'&&(v==='dashboard'||v==='admin'||v==='autorizaciones'||v==='correo'))return;
+  cv=v;
+  var map={dashboard:'d',registro:'r',historial:'h',autorizaciones:'aut',admin:'a',correo:'c'};
+  Object.keys(map).forEach(function(x){
+    var el=document.getElementById('v'+map[x]);if(el)el.style.display=x===v?'block':'none';
+    var nb=document.querySelector('.nb-'+x);if(nb)nb.classList.toggle('active',x===v);
+  });
+  if(v==='dashboard'){rd();activePasteTarget='f';}
+  if(v==='registro')activePasteTarget='r';
+  if(v==='historial')rh();
+  if(v==='autorizaciones')raut();
+  if(v==='admin'){ra();renderAuthUsers();}
+  if(v==='correo')loadMail(false);
+}
+
+function ft(d){if(!d)return'—';return new Date(d).toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});}
+function fd(d){if(!d)return'—';return new Date(d).toLocaleDateString('es-VE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fdt(d){if(!d)return'—';return fd(d)+' '+ft(d);}
+function now(){return new Date().toISOString();}
+function pad(n){return String(n).padStart(2,'0');}
+function fmtLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());}
+
+function getEstadoEfectivo(r){
+  if(r.estado==='Egresado')return 'Egresado';
+  if(r.estado==='En Recinto')return 'En Recinto';
+  // Estado Pendiente (registros de autorización no confirmados por puerta)
+  if(r.estado==='Pendiente'){
+    if(r.authHasta&&new Date()>new Date(r.authHasta))return 'Vencido';
+    return 'Pendiente';
+  }
+  return r.estado;
+}
+function badgeEstado(r){
+  var est=getEstadoEfectivo(r);
+  var map={
+    'En Recinto':'<span class="badge ben"><span class="bdot"></span>Activo</span>',
+    'Egresado':'<span class="badge beg"><span class="bdot"></span>Egresado</span>',
+    'Pendiente':'<span class="badge" style="background:#fef3c7;color:#92400e"><span class="bdot" style="background:#f59e0b"></span>Pendiente</span>',
+    'Vencido':'<span class="badge" style="background:#fee2e2;color:#dc2626"><span class="bdot" style="background:#dc2626"></span>Vencido</span>'
+  };
+  return map[est]||map['En Recinto'];
+}
+
+
+function rd(){
+  var hoy=new Date().toDateString();
+  var en=R.filter(function(r){return r.estado==='En Recinto';});
+  var pendientes=R.filter(function(r){return getEstadoEfectivo(r)==='Pendiente';});
+  document.getElementById('s1').textContent=en.length;
+  document.getElementById('s2').textContent=R.filter(function(r){return r.estado==='En Recinto'&&new Date(r.entrada).toDateString()===hoy;}).length;
+  document.getElementById('s3').textContent=R.filter(function(r){return r.salida&&new Date(r.salida).toDateString()===hoy;}).length;
+  document.getElementById('s4').textContent=R.length;
+
+  var tb=document.getElementById('tbd');
+  var html='';
+
+  // Sección pendientes de autorización
+  if(pendientes.length&&currentRole!=='auth'){
+    html+='<tr><td colspan="5" style="background:#fef3c7;padding:7px 11px;font-size:9px;font-weight:700;color:#92400e;letter-spacing:.08em">⏳ AUTORIZACIONES PENDIENTES DE INGRESO ('+pendientes.length+')</td></tr>';
+    html+=pendientes.map(function(r){
+      var fecha=new Date(r.authDesde);var fechaStr=fd(r.authDesde);
+      return '<tr style="background:#fffbeb">'
+        +'<td style="color:#0f172a;font-weight:600">'+r.nombre+'</td>'
+        +'<td><span class="ttag" style="background:#fef3c7;color:#92400e">'+r.tipo+'</span></td>'
+        +'<td style="color:#64748b;font-size:9px">'+r.unidad+'<br><span style="color:#f59e0b;font-weight:700">'+fechaStr+'</span></td>'
+        +'<td>'+badgeEstado(r)+'</td>'
+        +'<td><div class="acts"><button style="background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit" onclick="confirmarIngreso('+r.id+')">✅ INGRESÓ</button><button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  // Sección visitantes en recinto
+  if(en.length){
+    if(pendientes.length&&currentRole!=='auth'){
+      html+='<tr><td colspan="5" style="background:#f0fdf4;padding:7px 11px;font-size:9px;font-weight:700;color:#15803d;letter-spacing:.08em">✅ EN RECINTO AHORA ('+en.length+')</td></tr>';
+    }
+    html+=en.map(function(r){
+      var puedeEgreso=currentRole!=='auth';
+      return '<tr>'
+        +'<td style="color:#0f172a;font-weight:600">'+r.nombre+'</td>'
+        +'<td><span class="ttag">'+r.tipo+'</span></td>'
+        +'<td style="color:#64748b;font-size:9px">'+r.unidad+'</td>'
+        +'<td>'+badgeEstado(r)+'</td>'
+        +'<td><div class="acts">'+(puedeEgreso?'<button class="bs" onclick="om(\'salida\','+r.id+')">EGRESO</button>':'')+'<button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  // Badge rojo en PANEL si hay pendientes
+  var pb=document.getElementById('pendienteBadge');
+  if(pb&&currentRole!=='auth')pb.style.display=pendientes.length?'flex':'none';
+  tb.innerHTML=html;
+}
+
+function filtrados(){
+  var q=(document.getElementById('si')?.value||'').toLowerCase();
+  var fe=document.getElementById('fe')?.value||'Todos',fti=document.getElementById('fti')?.value||'Todos';
+  var desdeEl=document.getElementById('fdesde'),hastaEl=document.getElementById('fhasta');
+  var desde=desdeEl&&desdeEl.value?new Date(desdeEl.value):null;
+  var hasta=hastaEl&&hastaEl.value?new Date(hastaEl.value):null;
+  return R.filter(function(r){
+    var m=!q||r.nombre.toLowerCase().includes(q)||r.doc.includes(q)||(r.placa||'').toLowerCase().includes(q)||r.unidad.toLowerCase().includes(q);
+    var entrada=new Date(r.entrada);
+    return m&&(fe==='Todos'||r.estado===fe)&&(fti==='Todos'||r.tipo===fti)&&(!desde||entrada>=desde)&&(!hasta||entrada<=hasta);
+  }).sort(function(a,b){return new Date(b.entrada)-new Date(a.entrada);});
+}
+
+function setRango(r){
+  var now=new Date(),desde,hasta=new Date(now);
+  if(r==='hoy'){desde=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0);}
+  else if(r==='ayer'){var y=new Date(now);y.setDate(y.getDate()-1);desde=new Date(y.getFullYear(),y.getMonth(),y.getDate(),0,0);hasta=new Date(y.getFullYear(),y.getMonth(),y.getDate(),23,59);}
+  else if(r==='semana'){desde=new Date(now);desde.setDate(desde.getDate()-desde.getDay());desde.setHours(0,0,0);}
+  else if(r==='mes'){desde=new Date(now.getFullYear(),now.getMonth(),1,0,0);}
+  else{document.getElementById('fdesde').value='';document.getElementById('fhasta').value='';rh();return;}
+  document.getElementById('fdesde').value=fmtLocal(desde);
+  document.getElementById('fhasta').value=fmtLocal(hasta);
+  rh();
+}
+
+function rh(){
+  var f=filtrados();
+  // Si es rol auth, mostrar solo sus propios registros
+  if(currentRole==='auth'&&currentAuthUser){
+    f=f.filter(function(r){return r.authUser===currentAuthUser.nombre;});
+  }
+  document.getElementById('rc').textContent=f.length+' registro'+(f.length!==1?'s':'')+' encontrado'+(f.length!==1?'s':'');
+  var tb=document.getElementById('tbh');
+  if(!f.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin resultados</td></tr>';return;}
+  tb.innerHTML=f.map(function(r){
+    return '<tr><td style="color:#94a3b8">#'+r.id+'</td>'
+      +'<td style="color:#0f172a;font-weight:600;font-size:10px">'+r.nombre+'</td>'
+      +'<td><span class="ttag">'+r.tipo+'</span></td>'
+      +'<td style="color:#0284c7;font-size:9px">'+fd(r.entrada)+'<br>'+ft(r.entrada)+'</td>'
+      +'<td style="color:'+(r.salida?'#7c3aed':'#94a3b8')+';font-size:9px">'+(r.salida?fd(r.salida)+'<br>'+ft(r.salida):'—')+'</td>'
+      +'<td>'+(r.foto?'<img src="'+r.foto+'" class="id-thumb" onclick="viewImg(\''+r.foto+'\')" title="Ver ID"/>':'<span style="font-size:9px;color:#cbd5e1">—</span>')+'</td>'
+      +'<td>'+badgeEstado(r)+'</td>'
+      +'<td><div class="acts">'+(getEstadoEfectivo(r)==='En Recinto'&&currentRole!=='auth'?'<button class="bs" onclick="om(\'salida\','+r.id+')">EGRESO</button>':'')+'<button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td></tr>';
+  }).join('');
+}
+
+function ra(){
+  var q=(document.getElementById('siadmin')?.value||'').toLowerCase();
+  var f=R.filter(function(r){return !q||r.nombre.toLowerCase().includes(q)||r.doc.includes(q);}).sort(function(a,b){return new Date(b.entrada)-new Date(a.entrada);});
+  document.getElementById('rcadmin').textContent=f.length+' registros';
+  var tb=document.getElementById('tbadmin');
+  if(!f.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';return;}
+  tb.innerHTML=f.map(function(r){
+    return '<tr><td style="color:#94a3b8">#'+r.id+'</td><td style="color:#0f172a;font-weight:600;font-size:10px">'+r.nombre+'</td><td><span class="ttag">'+r.tipo+'</span></td><td style="color:#0284c7;font-size:9px">'+fd(r.entrada)+'<br>'+ft(r.entrada)+'</td><td><span class="badge '+(r.estado==='En Recinto'?'ben':'beg')+'"><span class="bdot"></span>'+(r.estado==='En Recinto'?'Activo':'Egresado')+'</span></td><td><div class="acts"><button class="be" onclick="om(\'editar\','+r.id+')">✏️ EDITAR</button><button class="bg" style="color:#dc2626;border-color:#fca5a5" onclick="eliminar('+r.id+')">🗑</button></div></td></tr>';
+  }).join('');
+}
+
+function raut(){
+  var q=(document.getElementById('si-aut')?.value||'').toLowerCase();
+  var f=R.filter(function(r){
+    return r.authRegistro===true&&(!q||r.nombre.toLowerCase().includes(q)||r.doc.includes(q)||(r.placa||'').toLowerCase().includes(q)||r.unidad.toLowerCase().includes(q));
+  }).sort(function(a,b){return new Date(b.entrada)-new Date(a.entrada);});
+  document.getElementById('rc-aut').textContent=f.length+' registro'+(f.length!==1?'s':'')+' por autorización';
+  var tb=document.getElementById('tb-aut');
+  if(!f.length){tb.innerHTML='<tr><td colspan="8" class="empty" style="color:#c4b5fd">Sin registros de autorización</td></tr>';return;}
+  tb.innerHTML=f.map(function(r){
+    return '<tr style="border-left:3px solid #ddd6fe">'
+      +'<td style="color:#94a3b8">#'+r.id+'</td>'
+      +'<td style="color:#0f172a;font-weight:600;font-size:10px">'+r.nombre+'</td>'
+      +'<td><span class="ttag" style="background:#f5f3ff;color:#7c3aed">'+r.tipo+'</span></td>'
+      +'<td style="color:#7c3aed;font-size:9px">'+fd(r.entrada)+'<br>'+ft(r.entrada)+'</td>'
+      +'<td style="color:#64748b;font-size:9px">'+(r.salida?fd(r.salida)+'<br>'+ft(r.salida):'—')+'</td>'
+      +'<td style="font-size:9px;color:#7c3aed;font-weight:700">🔒 '+r.authUser+'</td>'
+      +'<td>'+badgeEstado(r)+'</td>'
+      +'<td><div class="acts">'+(r.estado==='En Recinto'?'<button class="bs" onclick="om(\'salida\','+r.id+')">EGRESO</button>':'')+'<button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td>'
+      +'</tr>';
+  }).join('');
+}
+
+
+function exportCSV(){if(!filtrados().length){toast('No hay registros para exportar','err');return;}_exportType='csv';document.getElementById('expModal').classList.add('open');}
+function exportPDF(){if(!filtrados().length){toast('No hay registros para exportar','err');return;}_exportType='pdf';document.getElementById('expModal').classList.add('open');}
+function closeExportDialog(){document.getElementById('expModal').classList.remove('open');}
+function doExport(method){closeExportDialog();if(_exportType==='csv')_doCSV(method);else _doPDF(method);}
+
+function buildCSVContent(){
+  var f=filtrados();
+  var hdr=['#','NOMBRE','DOCUMENTO','TIPO','UNIDAD','PLACA','RAZON','AUTORIZADO POR / OFICIAL','ENTRADA','SALIDA','ESTADO','OBSERVACIONES'];
+  var rows=f.map(function(r){return [r.id,r.nombre,r.doc,r.tipo,r.unidad,r.placa||'',r.motivo||'',r.guardia,fdt(r.entrada),r.salida?fdt(r.salida):'En Recinto',r.estado,(r.obs||'').replace(/,/g,';')];});
+  return ['SECUREGATE 2.0 - CONTROL DE ACCESO - CONDOMINIO PUERTO BAHIA','Reporte generado: '+new Date().toLocaleString('es-VE'),'Total: '+f.length,'',hdr.join(',')]
+    .concat(rows.map(function(r){return r.map(function(v){return '"'+v+'"';}).join(',');})).join('\n');
+}
+function _doCSV(method){
+  var csv=buildCSVContent();
+  if(method==='download'){
+    var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SECUREGATE_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);toast('CSV descargado en Descargas');
+  } else {
+    var subj='SECUREGATE 2.0 - Reporte '+new Date().toISOString().slice(0,10);
+    window.location.href='mailto:?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent('Reporte SECUREGATE 2.0\n\n'+csv.substring(0,1500));
+    toast('Abriendo cliente de correo...');
+  }
+}
+function buildPDFHTML(){
+  var f=filtrados();
+  var desdeVal=document.getElementById('fdesde')?.value||'',hastaVal=document.getElementById('fhasta')?.value||'';
+  var rango=desdeVal&&hastaVal?new Date(desdeVal).toLocaleString('es-VE')+' — '+new Date(hastaVal).toLocaleString('es-VE'):'Todos los registros';
+  var rows=f.map(function(r){var ec=r.estado==='En Recinto'?'#dcfce7':'#f1f5f9',et=r.estado==='En Recinto'?'#16a34a':'#64748b';return '<tr><td>'+r.id+'</td><td><b>'+r.nombre+'</b><br><small>'+r.doc+'</small></td><td>'+r.tipo+'</td><td>'+r.unidad+'</td><td>'+(r.placa||'—')+'</td><td>'+(r.motivo||'—')+'</td><td>'+r.guardia+'</td><td>'+fd(r.entrada)+' '+ft(r.entrada)+'</td><td>'+(r.salida?fd(r.salida)+' '+ft(r.salida):'—')+'</td><td><span style="padding:2px 6px;border-radius:8px;background:'+ec+';color:'+et+'">'+r.estado+'</span></td></tr>';}).join('');
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Reporte SECUREGATE</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:monospace;font-size:10px;padding:20px}.enc{text-align:center;border-bottom:3px solid #0284c7;padding-bottom:12px;margin-bottom:14px}.enc h1{font-size:20px;font-weight:800}.enc h2{font-size:13px;font-weight:800;color:#0284c7;margin-top:3px}.enc p{font-size:9px;color:#64748b;margin-top:3px}table{width:100%;border-collapse:collapse}th{background:#0284c7;color:#fff;padding:6px 7px;text-align:left;font-size:8px}td{padding:5px 7px;border-bottom:1px solid #e2e8f0;font-size:9px}tr:nth-child(even) td{background:#f8fafc}.ft{margin-top:16px;text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}.np{display:none}@media print{.np{display:none}}</style></head><body>'
+    +'<div class="np" style="display:block;text-align:center;padding:10px;background:#e0f2fe;margin-bottom:14px;border-radius:6px"><strong>Ctrl+P para imprimir / guardar como PDF</strong></div>'
+    +'<div class="enc"><h1>🛡️ SECUREGATE 2.0</h1><h2>CONTROL DE ACCESO · CONDOMINIO PUERTO BAHÍA</h2><p>'+new Date().toLocaleString('es-VE')+' | '+rango+' | '+f.length+' registros</p></div>'
+    +'<table><thead><tr><th>#</th><th>NOMBRE/DOC</th><th>TIPO</th><th>UNIDAD</th><th>PLACA</th><th>RAZÓN</th><th>AUTORIZADO POR/OFICIAL</th><th>ENTRADA</th><th>SALIDA</th><th>ESTADO</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="ft">SECUREGATE 2.0 · CONDOMINIO PUERTO BAHÍA · Generado automáticamente</div></body></html>';
+}
+function _doPDF(method){
+  var html=buildPDFHTML();
+  if(method==='download'){
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SECUREGATE_Reporte_'+new Date().toISOString().slice(0,10)+'.html';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('Descargado. Ábrelo y presiona Ctrl+P para guardar como PDF');
+  } else {
+    var f=filtrados(),subj='SECUREGATE 2.0 - Reporte '+new Date().toISOString().slice(0,10);
+    var resumen=f.slice(0,10).map(function(r){return r.nombre+' | '+fdt(r.entrada)+' | '+r.estado;}).join('\n');
+    window.location.href='mailto:?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent('Reporte SECUREGATE 2.0\nTotal: '+f.length+'\n\n'+resumen);
+    toast('Abriendo cliente de correo...');
+  }
+}
+
+// ── FOTO ────────────────────────────────────────────────
+function dzDrag(e,t){e.preventDefault();document.getElementById('dz-'+t).classList.add('drag-over');activePasteTarget=t;}
+function dzLeave(t){document.getElementById('dz-'+t).classList.remove('drag-over');}
+function dzDrop(e,t){e.preventDefault();document.getElementById('dz-'+t).classList.remove('drag-over');var files=Array.from(e.dataTransfer.files),file=files.find(function(f){return f.type.startsWith('image/');});if(file)readFileToPhoto(file,t);else toast('Solo se aceptan imágenes','err');}
+function readFileToPhoto(file,target){var r=new FileReader();r.onload=function(e){setPhoto(target,e.target.result);};r.readAsDataURL(file);}
+document.addEventListener('paste',function(e){var img=Array.from(e.clipboardData?.items||[]).find(function(i){return i.type.startsWith('image/');});if(img){e.preventDefault();readFileToPhoto(img.getAsFile(),activePasteTarget);}});
+function setPhoto(target,data){
+  photoData[target]=data;
+  var ph=document.getElementById('dz-'+target+'-ph'),img=document.getElementById('dz-'+target+'-img');
+  var clr=document.getElementById('dz-'+target+'-clr'),dz=document.getElementById('dz-'+target);
+  if(ph)ph.style.display='none';if(img){img.src=data;img.style.display='block';}
+  if(dz)dz.classList.add('has-img');if(clr)clr.style.display='block';toast('Foto cargada ✓');
+}
+function clearDz(target){
+  photoData[target]=null;
+  var ph=document.getElementById('dz-'+target+'-ph'),img=document.getElementById('dz-'+target+'-img');
+  var clr=document.getElementById('dz-'+target+'-clr'),dz=document.getElementById('dz-'+target);
+  if(ph)ph.style.display='block';if(img){img.src='';img.style.display='none';}
+  if(dz)dz.classList.remove('has-img');if(clr)clr.style.display='none';
+}
+
+// ── CÁMARA ───────────────────────────────────────────────
+function openCam(target){
+  camTarget=target;activePasteTarget=target;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){document.getElementById('camModal').classList.add('open');document.getElementById('camVideo').style.display='none';document.getElementById('camErr').style.display='block';return;}
+  document.getElementById('camModal').classList.add('open');document.getElementById('camErr').style.display='none';document.getElementById('camVideo').style.display='block';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})
+    .then(function(s){camStream=s;document.getElementById('camVideo').srcObject=s;})
+    .catch(function(){navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(function(s){camStream=s;document.getElementById('camVideo').srcObject=s;}).catch(function(){document.getElementById('camVideo').style.display='none';document.getElementById('camErr').style.display='block';});});
+}
+function closeCam(){if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}document.getElementById('camModal').classList.remove('open');}
+function snapPhoto(){var v=document.getElementById('camVideo'),c=document.getElementById('camCanvas');if(!v.srcObject){closeCam();return;}c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);closeCam();setPhoto(camTarget,c.toDataURL('image/jpeg',0.85));}
+function viewImg(src){document.getElementById('imgBig').src=src;document.getElementById('imgModal').classList.add('open');}
+
+function photoWidget(target){
+  return '<div class="photo-sec"><span class="photo-lbl">FOTO DEL ID <span style="font-weight:400;color:#94a3b8;font-size:9px">(opcional)</span></span>'
+    +'<div class="drop-zone" id="dz-'+target+'" ondragover="dzDrag(event,\''+target+'\')" ondragleave="dzLeave(\''+target+'\')" ondrop="dzDrop(event,\''+target+'\')">'
+    +'<div id="dz-'+target+'-ph"><div class="pi">🪪</div><p><strong>Arrastra</strong> la foto o <strong>Ctrl+V</strong></p>'
+    +'<button class="cam-btn" onclick="openCam(\''+target+'\')">📷 Cámara</button></div>'
+    +'<img id="dz-'+target+'-img" class="drop-preview"/>'
+    +'<button class="drop-clear" id="dz-'+target+'-clr" style="display:none" onclick="clearDz(\''+target+'\')">✕ Quitar</button>'
+    +'</div></div>';
+}
+
+// ── MODAL ────────────────────────────────────────────────
+function om(mode,id){
+  if(mode==='salida'&&currentRole==='auth'){toast('Sin permiso para registrar egresos','err');return;}
+  if(mode==='salida'&&id){
+    var rCheck=R.find(function(x){return x.id===id;});
+    if(rCheck){
+      var est=getEstadoEfectivo(rCheck);
+      if(est==='Pendiente'){toast('No ha ingresado aún — confirma el ingreso primero','err');return;}
+      if(est==='Vencido'){toast('Acceso vencido — la ventana de autorización expiró','err');return;}
+    }
+  }
+  var r=R.find(function(x){return x.id===id;});
+  document.getElementById('mtit').textContent=mode==='entrada'?'🔑 NUEVO INGRESO':mode==='salida'?'🚪 REGISTRAR EGRESO':mode==='editar'?'✏️ EDITAR REGISTRO':'📄 DETALLE';
+  photoData.m=null;
+  var isAuth=currentRole==='auth';
+  var labelOficial=isAuth?'AUTORIZADO POR: *':'OFICIAL DE TURNO *';
+  var oficialVal=isAuth?currentAuthUser.nombre:'';
+  var oficialReadonly=isAuth?'readonly style="background:#f5f3ff;border-color:#ddd6fe;color:#7c3aed"':'';
+
+  if(mode==='entrada'){
+    document.getElementById('mbody').innerHTML=
+      '<div class="frow"><div class="fg"><label>NOMBRE *</label><input id="mn" placeholder="Nombre y apellido"/></div><div class="fg"><label>DOCUMENTO *</label><input id="md" placeholder="V-12345678"/></div></div>'
+      +'<div class="frow"><div class="fg"><label>TIPO *</label><select id="mti"><option value="">Seleccionar...</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor/Servicio</option><option>Contratista Externo</option><option>Empleado</option><option>Otro</option></select></div><div class="fg"><label>PLACA *</label><input id="mpl" placeholder="ABC-123"/></div></div>'
+      +'<div class="frow"><div class="fg"><label>TORRE / ÁREA *</label><select id="mtr"><option value="">Seleccionar...</option><option>Apartamentos Valle Alto</option><option>Apartamentos Valle</option><option>Villa Montaña</option><option>Villa Marina</option><option>Villa Playa</option><option>La Marina</option><option>Hotel Bannister</option><option>Administración HMS</option><option>Proyecto Bancalari</option><option>Otras</option></select></div><div class="fg"><label>NÚMERO DE PROPIEDAD *</label><input id="mpi" placeholder="Ej. 4B"/></div></div>'
+      +'<div class="frow"><div class="fg"><label>RAZÓN DE ENTRADA *</label><select id="mmo"><option value="">Seleccionar...</option><option>Acceso Frecuente Autorizado</option><option>Invitado de Propietario</option><option>Proveedor de Contratista</option><option>Proveedor del Hotel</option><option>Proveedor Marina</option><option>Proveedor de Condominio</option><option>Proveedor Proyecto Bancalari</option><option>Trabajos de Construcción</option><option>Trabajo de Mantenimiento</option><option>Reservación de Hotel</option><option>Reservación Independiente</option><option>Excursión Marina</option><option>Otros</option></select></div>'
+      +'<div class="fg"><label>'+labelOficial+'</label><input id="mg" value="'+oficialVal+'" placeholder="Nombre" '+oficialReadonly+'/></div></div>'
+      +photoWidget('m');
+    activePasteTarget='m';
+    document.getElementById('mfoot').innerHTML='<button class="bp'+(isAuth?' bp-auth':'')+'" onclick="riModal()">✅ REGISTRAR INGRESO</button><button class="bc" onclick="cm()">CANCELAR</button>';
+  } else if(mode==='salida'&&r){
+    document.getElementById('mbody').innerHTML='<div class="ibox"><div style="font-size:14px;font-weight:700;margin-bottom:3px;color:#0f172a">'+r.nombre+'</div><div style="font-size:10px;color:#64748b">'+r.doc+' · '+r.tipo+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">'+r.unidad+'</div><div style="font-size:10px;color:#0284c7;margin-top:5px">Ingresó: '+fd(r.entrada)+' a las '+ft(r.entrada)+'</div></div><div class="cbox">⚠️ Se registrará la salida ahora. Estado cambiará a <strong>Egresado</strong>.</div>';
+    document.getElementById('mfoot').innerHTML='<button class="bp" style="background:linear-gradient(135deg,#16a34a,#15803d)" onclick="reEgreso('+r.id+')">🚪 CONFIRMAR EGRESO</button><button class="bc" onclick="cm()">CANCELAR</button>';
+  } else if(mode==='editar'&&r){
+    document.getElementById('mbody').innerHTML=
+      '<div class="frow"><div class="fg"><label>NOMBRE</label><input id="en" value="'+r.nombre+'"/></div><div class="fg"><label>DOCUMENTO</label><input id="ed" value="'+r.doc+'"/></div></div>'
+      +'<div class="frow"><div class="fg"><label>TIPO</label><select id="eti"><option '+(r.tipo==='Visita'?'selected':'')+'>Visita</option><option '+(r.tipo==='Propietario'?'selected':'')+'>Propietario</option><option '+(r.tipo==='Residente'?'selected':'')+'>Residente</option><option '+(r.tipo==='Proveedor/Servicio'?'selected':'')+'>Proveedor/Servicio</option><option '+(r.tipo==='Contratista Externo'?'selected':'')+'>Contratista Externo</option><option '+(r.tipo==='Empleado'?'selected':'')+'>Empleado</option><option '+(r.tipo==='Otro'?'selected':'')+'>Otro</option></select></div><div class="fg"><label>PLACA</label><input id="epl" value="'+(r.placa||'')+'"/></div></div>'
+      +'<div class="frow"><div class="fg"><label>ESTADO</label><select id="est"><option '+(r.estado==='En Recinto'?'selected':'')+'>En Recinto</option><option '+(r.estado==='Egresado'?'selected':'')+'>Egresado</option></select></div><div class="fg"><label>OFICIAL / AUTORIZADO POR</label><input id="egu" value="'+r.guardia+'"/></div></div>'
+      +'<div class="fg"><label>OBSERVACIONES</label><textarea id="eobs">'+(r.obs||'')+'</textarea></div>';
+    document.getElementById('mfoot').innerHTML='<button class="bp" onclick="guardarEdicion('+r.id+')">💾 GUARDAR CAMBIOS</button><button class="bc" onclick="cm()">CANCELAR</button>';
+  } else if(mode==='ver'&&r){
+    var estEfectivo=getEstadoEfectivo(r);
+    var estLabel=estEfectivo==='Pendiente'?'⏳ PENDIENTE':estEfectivo==='Vencido'?'🔴 VENCIDO':r.salida?'Egresado':'En Recinto';
+    document.getElementById('mbody').innerHTML=
+      (r.foto?'<div style="text-align:center;margin-bottom:12px"><img src="'+r.foto+'" style="max-height:120px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer" onclick="viewImg(\''+r.foto+'\')"/><div style="font-size:8px;color:#94a3b8;margin-top:3px">FOTO ID · toca para ampliar</div></div>':'<div style="text-align:center;color:#cbd5e1;font-size:9px;margin-bottom:12px">Sin foto de ID</div>')
+      +'<div class="dgrid">'
+      +[['NOMBRE',r.nombre],['DOCUMENTO',r.doc],['TIPO',r.tipo],['UNIDAD',r.unidad],['PLACA',r.placa||'—'],['AUTORIZADO POR / OFICIAL',r.guardia],['ENTRADA',fdt(r.entrada)],['SALIDA',r.salida?fdt(r.salida):'Aún en recinto'],['RAZÓN',r.motivo||'—'],['ESTADO',estLabel]].map(function(x){return '<div class="di"><div class="dl">'+x[0]+'</div><div class="dv">'+x[1]+'</div></div>';}).join('')
+      +(r.authDesde?'<div class="di" style="background:#f5f3ff;border-color:#ddd6fe"><div class="dl" style="color:#7c3aed">LLEGADA PERMITIDA</div><div class="dv" style="color:#7c3aed">'+fdt(r.authDesde)+'</div></div>':'')
+      +(r.authHasta?'<div class="di" style="background:#f5f3ff;border-color:#ddd6fe"><div class="dl" style="color:#7c3aed">SALIDA LÍMITE</div><div class="dv" style="color:#7c3aed">'+fdt(r.authHasta)+'</div></div>':'')
+      +(r.obs?'<div class="di" style="grid-column:1/-1"><div class="dl">OBSERVACIONES</div><div class="dv" style="font-weight:400;color:#64748b;font-size:10px">'+r.obs+'</div></div>':'')
+      +'</div>';
+    document.getElementById('mfoot').innerHTML='<button class="bc" onclick="cm()">CERRAR</button>';
+  }
+  document.getElementById('modal').classList.add('open');
+}
+function cm(){document.getElementById('modal').classList.remove('open');}
+
+async function regIngresoAuth(){
+  var n=document.getElementById('rn').value.trim(),d=document.getElementById('rd').value.trim();
+  var t=document.getElementById('rtr').value,placa=document.getElementById('rp').value.trim();
+  var numprop=document.getElementById('rpi').value.trim(),razon=document.getElementById('rm').value;
+  var oficial=document.getElementById('rg').value.trim(),tipo=document.getElementById('rt').value;
+  if(!n||!d||!tipo||!t||!placa||!numprop||!razon){toast('Complete todos los campos obligatorios (*)','err');return;}
+  var desdeVal=document.getElementById('rAuthDesde').value;
+  var hastaVal=document.getElementById('rAuthHasta').value;
+  if(!desdeVal||!hastaVal){toast('Indique la ventana de acceso (llegada y salida límite)','err');return;}
+  var authDesde=new Date(desdeVal).toISOString();
+  var authHasta=new Date(hastaVal).toISOString();
+  if(new Date(authHasta)<=new Date(authDesde)){toast('La salida límite debe ser posterior a la llegada','err');return;}
+  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'Pendiente',guardia:oficial,obs:document.getElementById('ro').value,foto:photoData.r,authRegistro:true,authUser:currentAuthUser.nombre,authDesde:authDesde,authHasta:authHasta});
+  limpiarAuth();
+  await saveToStore({records:R,nid:nid});
+  toast('Ingreso registrado: '+n);
+  sv('historial');
+}
+function limpiarAuth(){
+  ['rn','rd','rp','rpi','ro'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['rt','rtr','rm'].forEach(function(id){var e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  var hoy=new Date();
+  var yy=hoy.getFullYear(),mm=pad(hoy.getMonth()+1),dd=pad(hoy.getDate());
+  document.getElementById('rAuthDesde').value=yy+'-'+mm+'-'+dd+'T08:00';
+  document.getElementById('rAuthHasta').value=yy+'-'+mm+'-'+dd+'T17:00';
+  clearDz('r');
+}
+
+
+var formOpen=false;
+function toggleForm(){
+  formOpen=!formOpen;
+  var body=document.getElementById('formBody');
+  var arrow=document.getElementById('formArrow');
+  var toggle=document.getElementById('formToggle');
+  body.style.display=formOpen?'block':'none';
+  arrow.style.transform=formOpen?'rotate(180deg)':'rotate(0deg)';
+  toggle.style.background=formOpen?'#e0f2fe':'#f0f9ff';
+  if(formOpen)activePasteTarget='f';
+}
+
+
+async function regIngreso(){
+  var n=document.getElementById('fn').value.trim(),d=document.getElementById('fd').value.trim();
+  var t=document.getElementById('ftr').value,placa=document.getElementById('fp').value.trim();
+  var numprop=document.getElementById('fpi').value.trim(),razon=document.getElementById('fm').value;
+  var oficial=document.getElementById('fg2').value.trim(),tipo=document.getElementById('ft').value;
+  if(!n||!d||!tipo||!t||!placa||!numprop||!razon||!oficial){toast('Complete todos los campos obligatorios (*)','err');return;}
+  var authDesde=null,authHasta=null;
+  if(currentRole==='auth'){
+    var desdeVal=document.getElementById('fAuthDesde').value;
+    var hastaVal=document.getElementById('fAuthHasta').value;
+    if(!desdeVal||!hastaVal){toast('Indique la ventana de acceso (llegada y salida límite)','err');return;}
+    authDesde=new Date(desdeVal).toISOString();
+    authHasta=new Date(hastaVal).toISOString();
+    if(new Date(authHasta)<=new Date(authDesde)){toast('La salida límite debe ser posterior a la llegada','err');return;}
+  }
+  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:document.getElementById('fo').value,foto:photoData.f,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null,authDesde:authDesde,authHasta:authHasta});
+  limpiar();
+  // Colapsar formulario tras registrar
+  formOpen=true;toggleForm();
+  await saveToStore({records:R,nid:nid});toast('Ingreso registrado: '+n);rd();
+}
+async function riModal(){
+  var n=document.getElementById('mn')?.value.trim(),d=document.getElementById('md')?.value.trim();
+  var t=document.getElementById('mtr')?.value,placa=document.getElementById('mpl')?.value.trim();
+  var numprop=document.getElementById('mpi')?.value.trim(),razon=document.getElementById('mmo')?.value;
+  var oficial=document.getElementById('mg')?.value.trim(),tipo=document.getElementById('mti')?.value;
+  if(!n||!d||!tipo||!t||!placa||!numprop||!razon||!oficial){toast('Complete todos los campos obligatorios (*)','err');return;}
+  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:'',foto:photoData.m,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null});
+  cm();await saveToStore({records:R,nid:nid});toast('Ingreso registrado: '+n);
+  if(cv==='dashboard')rd();if(cv==='historial')rh();
+}
+async function confirmarIngreso(id){
+  var r=R.find(function(x){return x.id===id;});
+  if(!r)return;
+  if(getEstadoEfectivo(r)==='Vencido'){toast('Autorización vencida — no se puede confirmar ingreso','err');return;}
+  R=R.map(function(x){return x.id===id?Object.assign({},x,{estado:'En Recinto',entrada:now()}):x;});
+  await saveToStore({records:R,nid:nid});
+  toast('✅ Ingreso confirmado: '+r.nombre);
+  rd();raut();
+}
+
+async function reEgreso(id){
+  R=R.map(function(r){return r.id===id?Object.assign({},r,{salida:now(),estado:'Egresado'}):r;});
+  cm();await saveToStore({records:R,nid:nid});toast('Egreso registrado');
+  if(cv==='dashboard')rd();if(cv==='historial')rh();
+}
+async function guardarEdicion(id){
+  R=R.map(function(r){
+    if(r.id!==id)return r;
+    var nuevoEstado=document.getElementById('est').value;
+    return Object.assign({},r,{nombre:document.getElementById('en').value.trim()||r.nombre,doc:document.getElementById('ed').value.trim()||r.doc,tipo:document.getElementById('eti').value,placa:document.getElementById('epl').value||null,estado:nuevoEstado,salida:nuevoEstado==='Egresado'&&!r.salida?now():r.salida,guardia:document.getElementById('egu').value,obs:document.getElementById('eobs').value});
+  });
+  cm();await saveToStore({records:R,nid:nid});toast('Registro actualizado');
+  if(cv==='admin')ra();if(cv==='dashboard')rd();if(cv==='historial')rh();
+}
+async function eliminar(id){
+  if(!confirm('¿Eliminar este registro permanentemente?'))return;
+  R=R.filter(function(r){return r.id!==id;});
+  await saveToStore({records:R,nid:nid});toast('Registro eliminado');ra();
+}
+async function clearAll(){
+  if(!confirm('¿Borrar TODOS los registros? Esta acción es irreversible.'))return;
+  R=[];nid=1;await saveToStore({records:R,nid:nid});toast('Todos los registros eliminados','err');ra();rd();
+}
+function limpiar(){
+  ['fn','fd','fp','fpi','fo'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['ft','ftr','fm'].forEach(function(id){var e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  if(currentRole!=='auth'){var fg2=document.getElementById('fg2');if(fg2)fg2.value='';}
+  clearDz('f');
+}
+function toast(msg,type){type=type||'suc';var t=document.getElementById('toast');t.textContent=(type==='suc'?'✅ ':'❌ ')+msg;t.className='toast show t'+type;setTimeout(function(){t.className='toast';},3000);}
+
+// ── CORREO ────────────────────────────────────────────────
+var mailData=[];
+var mailLoaded=false;
+
+async function loadMail(force){
+  if(!force&&mailLoaded)return;
+  document.getElementById('mailLoader').style.display='block';
+  document.getElementById('mailList').style.display='none';
+  document.getElementById('mailError').style.display='none';
+  document.getElementById('mailRefreshBtn').disabled=true;
+  document.getElementById('mailAccountLabel').textContent='Cargando bandeja...';
+
+  try{
+    var response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'Eres un asistente que obtiene correos de Gmail. Devuelve SOLO JSON sin markdown, sin explicaciones, sin texto adicional. El JSON debe tener exactamente esta estructura: {"account":"email@ejemplo.com","emails":[{"id":"id_del_mensaje","from":"remitente","from_name":"Nombre Remitente","subject":"Asunto","date":"2026-03-07T10:00:00","snippet":"Vista previa del mensaje...","unread":true}]}. Obtén los últimos 20 mensajes de la bandeja de entrada.',
+        messages:[{role:'user',content:'Obtén los últimos 20 correos de la bandeja de entrada de Gmail usando la herramienta disponible. Devuelve solo el JSON solicitado.'}],
+        mcp_servers:[{type:'url',url:'https://gmail.mcp.claude.com/mcp',name:'gmail-mcp'}]
+      })
+    });
+
+    var data=await response.json();
+    if(!response.ok)throw new Error(data.error?.message||'Error al conectar con Gmail');
+
+    // Extraer JSON del contenido de respuesta
+    var jsonText='';
+    if(data.content){
+      for(var i=0;i<data.content.length;i++){
+        if(data.content[i].type==='text'){jsonText+=data.content[i].text;}
+      }
+    }
+
+    // Limpiar posibles bloques markdown
+    jsonText=jsonText.replace(/```json|```/g,'').trim();
+    // Extraer primer objeto JSON válido
+    var match=jsonText.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error('No se pudo leer la respuesta del correo');
+    var parsed=JSON.parse(match[0]);
+
+    mailData=parsed.emails||[];
+    mailLoaded=true;
+
+    // Actualizar etiqueta de cuenta
+    document.getElementById('mailAccountLabel').textContent=parsed.account||'Cuenta del condominio';
+
+    // Badge de no leídos
+    var unread=mailData.filter(function(m){return m.unread;}).length;
+    var badge=document.getElementById('mailBadge');
+    if(unread>0){badge.textContent=unread>9?'9+':unread;badge.style.display='flex';}
+    else{badge.style.display='none';}
+
+    renderMail(mailData);
+    document.getElementById('mailLoader').style.display='none';
+    document.getElementById('mailList').style.display='block';
+
+  }catch(e){
+    document.getElementById('mailLoader').style.display='none';
+    document.getElementById('mailError').style.display='block';
+    document.getElementById('mailError').innerHTML='⚠️ No se pudo cargar el correo.<br><span style="font-size:9px;color:#94a3b8">'+e.message+'</span><br><br><button onclick="loadMail(true)" style="background:#0284c7;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:10px;font-family:inherit;cursor:pointer;margin-top:4px">🔄 Reintentar</button>';
+    document.getElementById('mailAccountLabel').textContent='Error de conexión';
+  }
+  document.getElementById('mailRefreshBtn').disabled=false;
+}
+
+function renderMail(list){
+  var container=document.getElementById('mailList');
+  if(!list.length){container.innerHTML='<div class="empty">📭 Bandeja vacía</div>';return;}
+  container.innerHTML=list.map(function(m,i){
+    var d=new Date(m.date);
+    var hoy=new Date().toDateString();
+    var dateStr=d.toDateString()===hoy?d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('es-VE',{day:'2-digit',month:'short'});
+    return '<div onclick="openMailRead('+i+')" style="background:#fff;border:1px solid '+(m.unread?'#bae6fd':'#e2e8f0')+';border-left:3px solid '+(m.unread?'#0284c7':'#e2e8f0')+';border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'#fff\'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
+      +'<div style="font-size:11px;font-weight:'+(m.unread?'700':'600')+';color:#0f172a;flex:1;margin-right:8px">'+(m.from_name||m.from)+'</div>'
+      +'<div style="font-size:8px;color:#94a3b8;white-space:nowrap">'+dateStr+'</div></div>'
+      +'<div style="font-size:10px;font-weight:'+(m.unread?'700':'400')+';color:'+(m.unread?'#0f172a':'#475569')+';margin-bottom:3px">'+m.subject+'</div>'
+      +'<div style="font-size:9px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+m.snippet+'</div>'
+      +(m.unread?'<div style="display:inline-block;background:#dbeafe;color:#1d4ed8;font-size:7px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:5px">NUEVO</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function filterMail(){
+  var q=document.getElementById('mailSearch').value.toLowerCase();
+  if(!q){renderMail(mailData);return;}
+  var f=mailData.filter(function(m){
+    return m.subject.toLowerCase().includes(q)||m.from.toLowerCase().includes(q)||(m.from_name||'').toLowerCase().includes(q)||m.snippet.toLowerCase().includes(q);
+  });
+  renderMail(f);
+}
+
+async function openMailRead(idx){
+  var m=mailData[idx];
+  if(!m)return;
+  document.getElementById('mailReadSubject').textContent=m.subject||'(Sin asunto)';
+  var d=new Date(m.date);
+  document.getElementById('mailReadMeta').innerHTML=
+    '<div><div style="font-size:8px;color:#94a3b8;margin-bottom:2px">DE</div><div style="font-size:10px;font-weight:600;color:#0f172a">'+(m.from_name||m.from)+'</div><div style="font-size:9px;color:#94a3b8">'+m.from+'</div></div>'
+    +'<div><div style="font-size:8px;color:#94a3b8;margin-bottom:2px">FECHA</div><div style="font-size:10px;font-weight:600;color:#0f172a">'+d.toLocaleDateString('es-VE',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})+'</div><div style="font-size:9px;color:#94a3b8">'+d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+  document.getElementById('mailReadBody').textContent='⏳ Cargando contenido...';
+  document.getElementById('mailReadModal').style.display='flex';
+
+  // Marcar como leído localmente
+  mailData[idx].unread=false;
+  var unread=mailData.filter(function(x){return x.unread;}).length;
+  var badge=document.getElementById('mailBadge');
+  if(unread>0){badge.textContent=unread>9?'9+':unread;badge.style.display='flex';}else{badge.style.display='none';}
+
+  // Obtener cuerpo completo del correo
+  try{
+    var response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'Eres un asistente que obtiene el contenido completo de un correo de Gmail. Devuelve SOLO JSON: {"body":"contenido completo del correo en texto plano, sin HTML"}.',
+        messages:[{role:'user',content:'Obtén el cuerpo completo del correo con id: '+m.id+'. Devuelve solo el JSON solicitado.'}],
+        mcp_servers:[{type:'url',url:'https://gmail.mcp.claude.com/mcp',name:'gmail-mcp'}]
+      })
+    });
+    var data=await response.json();
+    var jsonText='';
+    if(data.content){for(var i=0;i<data.content.length;i++){if(data.content[i].type==='text')jsonText+=data.content[i].text;}}
+    jsonText=jsonText.replace(/```json|```/g,'').trim();
+    var match=jsonText.match(/\{[\s\S]*\}/);
+    if(match){var parsed=JSON.parse(match[0]);document.getElementById('mailReadBody').textContent=parsed.body||m.snippet;}
+    else{document.getElementById('mailReadBody').textContent=m.snippet;}
+  }catch(e){document.getElementById('mailReadBody').textContent=m.snippet;}
+}
+
+function closeMailRead(){document.getElementById('mailReadModal').style.display='none';}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "SECUREGATE 2.0 · Condominio Puerto Bahía",
+  "short_name": "SECUREGATE",
+  "description": "Sistema de Control de Acceso · Condominio Puerto Bahía",
+  "start_url": "./SECUREGATE_2.0.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["security", "productivity"],
+  "lang": "es"
+}
