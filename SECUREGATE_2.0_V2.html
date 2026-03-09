@@ -828,10 +828,10 @@ async function removeAuthUser(id){
 // ── FIREBASE STORAGE ─────────────────────────────────────
 function setSyncDot(s){var d=document.getElementById('sdot');if(d)d.className='sync-dot '+s;}
 
-var isSaving=false;
+var savingCount=0; // Contador de guardados en curso
 
 async function saveToStore(data){
-  isSaving=true;
+  savingCount++;
   setSyncDot('syncing');
   try{
     await DB.ref('securegate/registros').set(data);
@@ -840,7 +840,7 @@ async function saveToStore(data){
     try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(le){}
     setSyncDot('err');
   }finally{
-    setTimeout(function(){isSaving=false;},1500);
+    savingCount--;
   }
 }
 
@@ -873,7 +873,7 @@ async function loadPins(){
 // Listener en tiempo real — sincroniza todos los dispositivos
 function startRealtimeSync(){
   DB.ref('securegate/registros').on('value',function(snap){
-    if(isSaving)return; // Ignorar mientras guardamos localmente
+    if(savingCount>0)return; // Ignorar mientras guardamos
     if(!snap.exists())return;
     var data=snap.val();
     if(data&&data.records){
