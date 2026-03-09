@@ -903,7 +903,7 @@ async function init(){
     await loadPins();
     var data=await loadFromStore();
     if(data&&data.records){R=data.records;nid=data.nid||R.length+1;}
-    else{R=[];nid=1;await saveToStore({records:R,nid:nid});}
+    else{R=[];nid=1;} // NO guardar en Firebase si no hay datos — evita borrar datos existentes
   }catch(e){R=[];nid=1;}
 
   // Restaurar sesión guardada
