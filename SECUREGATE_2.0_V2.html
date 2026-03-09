@@ -828,15 +828,19 @@ async function removeAuthUser(id){
 // ── FIREBASE STORAGE ─────────────────────────────────────
 function setSyncDot(s){var d=document.getElementById('sdot');if(d)d.className='sync-dot '+s;}
 
+var isSaving=false;
+
 async function saveToStore(data){
+  isSaving=true;
   setSyncDot('syncing');
   try{
     await DB.ref('securegate/registros').set(data);
     setSyncDot('ok');
   }catch(e){
-    // Fallback localStorage
     try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(le){}
     setSyncDot('err');
+  }finally{
+    setTimeout(function(){isSaving=false;},1500);
   }
 }
 
@@ -845,7 +849,6 @@ async function loadFromStore(){
     var snap=await DB.ref('securegate/registros').once('value');
     if(snap.exists())return snap.val();
   }catch(e){}
-  // Fallback localStorage
   try{var raw=localStorage.getItem(STORE_KEY);if(raw)return JSON.parse(raw);}catch(le){}
   return null;
 }
@@ -863,7 +866,6 @@ async function loadPins(){
     var snap=await DB.ref('securegate/pins').once('value');
     if(snap.exists()){PINS=snap.val();if(!PINS.authUsers)PINS.authUsers=[];return;}
   }catch(e){}
-  // Fallback localStorage
   try{var raw=localStorage.getItem(PINS_KEY);if(raw)PINS=JSON.parse(raw);}catch(le){}
   if(!PINS.authUsers)PINS.authUsers=[];
 }
@@ -871,6 +873,7 @@ async function loadPins(){
 // Listener en tiempo real — sincroniza todos los dispositivos
 function startRealtimeSync(){
   DB.ref('securegate/registros').on('value',function(snap){
+    if(isSaving)return; // Ignorar mientras guardamos localmente
     if(!snap.exists())return;
     var data=snap.val();
     if(data&&data.records){
@@ -1102,7 +1105,7 @@ function ra(){
 function raut(){
   var q=(document.getElementById('si-aut')?.value||'').toLowerCase();
   var f=R.filter(function(r){
-    return r.authRegistro===true&&(!q||r.nombre.toLowerCase().includes(q)||r.doc.includes(q)||(r.placa||'').toLowerCase().includes(q)||r.unidad.toLowerCase().includes(q));
+    return (r.authRegistro===true||r.authRegistro==='true')&&(!q||r.nombre.toLowerCase().includes(q)||r.doc.includes(q)||(r.placa||'').toLowerCase().includes(q)||r.unidad.toLowerCase().includes(q));
   }).sort(function(a,b){return new Date(b.entrada)-new Date(a.entrada);});
   document.getElementById('rc-aut').textContent=f.length+' registro'+(f.length!==1?'s':'')+' por autorización';
   var tb=document.getElementById('tb-aut');
