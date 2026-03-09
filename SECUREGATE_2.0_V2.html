@@ -757,11 +757,6 @@ function logout(){
 }
 
 // ── PINS & AUTH USERS ────────────────────────────────────
-async function loadPins(){
-  try{var raw=localStorage.getItem(PINS_KEY);if(raw)PINS=JSON.parse(raw);}catch(e){}
-  if(!PINS.authUsers)PINS.authUsers=[];
-}
-async function savePins(){try{localStorage.setItem(PINS_KEY,JSON.stringify(PINS));}catch(e){}}
 async function savePin(role){
   var val=document.getElementById(role==='user'?'pinUser':'pinAdmin').value.trim();
   if(val.length!==4||!/^\d{4}$/.test(val)){toast('El PIN debe tener exactamente 4 dígitos','err');return;}
@@ -828,27 +823,86 @@ async function removeAuthUser(id){
 // ── FIREBASE STORAGE ─────────────────────────────────────
 function setSyncDot(s){var d=document.getElementById('sdot');if(d)d.className='sync-dot '+s;}
 
-var savingCount=0; // Contador de guardados en curso
+var savingCount=0;
+var FB_REC='securegate/data/records';
+var FB_NID='securegate/data/nid';
 
-async function saveToStore(data){
+// Guarda UN solo registro por su ID — nunca pisa registros de otros dispositivos
+async function saveRecord(record){
   savingCount++;
   setSyncDot('syncing');
   try{
-    await DB.ref('securegate/registros').set(data);
+    // Limpiar nulls — Firebase los ignora de todas formas
+    var clean=JSON.parse(JSON.stringify(record,function(k,v){return v===undefined?null:v;}));
+    await DB.ref(FB_REC+'/'+record.id).set(clean);
+    await DB.ref(FB_NID).set(nid);
     setSyncDot('ok');
-  }catch(e){
-    try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(le){}
-    setSyncDot('err');
-  }finally{
-    savingCount--;
-  }
+  }catch(e){setSyncDot('err');}
+  finally{savingCount--;}
 }
 
+// Actualiza solo los campos indicados de un registro existente
+async function updateRecord(id,changes){
+  savingCount++;
+  setSyncDot('syncing');
+  try{
+    await DB.ref(FB_REC+'/'+id).update(changes);
+    setSyncDot('ok');
+  }catch(e){setSyncDot('err');}
+  finally{savingCount--;}
+}
+
+// Elimina un registro por ID
+async function deleteRecord(id){
+  savingCount++;
+  setSyncDot('syncing');
+  try{
+    await DB.ref(FB_REC+'/'+id).remove();
+    setSyncDot('ok');
+  }catch(e){setSyncDot('err');}
+  finally{savingCount--;}
+}
+
+// Elimina todos los registros
+async function deleteAllRecords(){
+  savingCount++;
+  setSyncDot('syncing');
+  try{
+    await DB.ref(FB_REC).remove();
+    await DB.ref(FB_NID).set(1);
+    setSyncDot('ok');
+  }catch(e){setSyncDot('err');}
+  finally{savingCount--;}
+}
+
+// Carga inicial — con migración automática desde estructura antigua
 async function loadFromStore(){
   try{
-    var snap=await DB.ref('securegate/registros').once('value');
-    if(snap.exists())return snap.val();
+    // Estructura nueva
+    var snapNid=await DB.ref(FB_NID).once('value');
+    var snapRec=await DB.ref(FB_REC).once('value');
+    if(snapRec.exists()){
+      var obj=snapRec.val();
+      var recs=obj?Object.values(obj):[];
+      recs.sort(function(a,b){return b.id-a.id;});
+      var n=snapNid.exists()?snapNid.val():recs.length+1;
+      return {records:recs,nid:n};
+    }
+    // Migración desde estructura antigua (securegate/registros)
+    var oldSnap=await DB.ref('securegate/registros').once('value');
+    if(oldSnap.exists()){
+      var od=oldSnap.val();
+      if(od&&od.records){
+        var arr=Array.isArray(od.records)?od.records:Object.values(od.records);
+        var batch={};arr.forEach(function(r){if(r&&r.id)batch[r.id]=r;});
+        await DB.ref(FB_REC).set(batch);
+        await DB.ref(FB_NID).set(od.nid||arr.length+1);
+        arr.sort(function(a,b){return b.id-a.id;});
+        return {records:arr,nid:od.nid||arr.length+1};
+      }
+    }
   }catch(e){}
+  // Fallback localStorage
   try{var raw=localStorage.getItem(STORE_KEY);if(raw)return JSON.parse(raw);}catch(le){}
   return null;
 }
@@ -870,20 +924,22 @@ async function loadPins(){
   if(!PINS.authUsers)PINS.authUsers=[];
 }
 
-// Listener en tiempo real — sincroniza todos los dispositivos
+// Convierte objeto Firebase → array ordenado por id desc
+function fbObjToArray(obj){
+  if(!obj)return[];
+  return Object.values(obj).sort(function(a,b){return b.id-a.id;});
+}
+
+// Listener en tiempo real — recibe solo cambios, no reemplaza todo R
 function startRealtimeSync(){
-  DB.ref('securegate/registros').on('value',function(snap){
-    if(savingCount>0)return; // Ignorar mientras guardamos
-    if(!snap.exists())return;
-    var data=snap.val();
-    if(data&&data.records){
-      R=data.records;nid=data.nid||R.length+1;
-      setSyncDot('ok');
-      if(cv==='dashboard')rd();
-      if(cv==='historial')rh();
-      if(cv==='autorizaciones')raut();
-      if(cv==='admin')ra();
-    }
+  DB.ref(FB_REC).on('value',function(snap){
+    if(savingCount>0)return;
+    R=snap.exists()?fbObjToArray(snap.val()):[];
+    setSyncDot('ok');
+    if(cv==='dashboard')rd();
+    if(cv==='historial')rh();
+    if(cv==='autorizaciones')raut();
+    if(cv==='admin')ra();
   },function(){setSyncDot('err');});
   DB.ref('securegate/pins').on('value',function(snap){
     if(!snap.exists())return;
@@ -903,7 +959,7 @@ async function init(){
     await loadPins();
     var data=await loadFromStore();
     if(data&&data.records){R=data.records;nid=data.nid||R.length+1;}
-    else{R=[];nid=1;} // NO guardar en Firebase si no hay datos — evita borrar datos existentes
+    else{R=[];nid=1;}
   }catch(e){R=[];nid=1;}
 
   // Restaurar sesión guardada
@@ -1299,9 +1355,10 @@ async function regIngresoAuth(){
   var authDesde=new Date(desdeVal).toISOString();
   var authHasta=new Date(hastaVal).toISOString();
   if(new Date(authHasta)<=new Date(authDesde)){toast('La salida límite debe ser posterior a la llegada','err');return;}
-  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'Pendiente',guardia:oficial,obs:document.getElementById('ro').value,foto:photoData.r,authRegistro:true,authUser:currentAuthUser.nombre,authDesde:authDesde,authHasta:authHasta});
+  var rec={id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'Pendiente',guardia:oficial,obs:document.getElementById('ro').value,foto:photoData.r||null,authRegistro:true,authUser:currentAuthUser.nombre,authDesde:authDesde,authHasta:authHasta};
+  R.unshift(rec);
   limpiarAuth();
-  await saveToStore({records:R,nid:nid});
+  await saveRecord(rec);
   toast('Ingreso registrado: '+n);
   sv('historial');
 }
@@ -1344,11 +1401,12 @@ async function regIngreso(){
     authHasta=new Date(hastaVal).toISOString();
     if(new Date(authHasta)<=new Date(authDesde)){toast('La salida límite debe ser posterior a la llegada','err');return;}
   }
-  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:document.getElementById('fo').value,foto:photoData.f,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null,authDesde:authDesde,authHasta:authHasta});
+  var rec={id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:document.getElementById('fo').value,foto:photoData.f||null,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null,authDesde:authDesde,authHasta:authHasta};
+  R.unshift(rec);
   limpiar();
-  // Colapsar formulario tras registrar
   formOpen=true;toggleForm();
-  await saveToStore({records:R,nid:nid});toast('Ingreso registrado: '+n);rd();
+  await saveRecord(rec);
+  toast('Ingreso registrado: '+n);rd();
 }
 async function riModal(){
   var n=document.getElementById('mn')?.value.trim(),d=document.getElementById('md')?.value.trim();
@@ -1356,8 +1414,9 @@ async function riModal(){
   var numprop=document.getElementById('mpi')?.value.trim(),razon=document.getElementById('mmo')?.value;
   var oficial=document.getElementById('mg')?.value.trim(),tipo=document.getElementById('mti')?.value;
   if(!n||!d||!tipo||!t||!placa||!numprop||!razon||!oficial){toast('Complete todos los campos obligatorios (*)','err');return;}
-  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:'',foto:photoData.m,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null});
-  cm();await saveToStore({records:R,nid:nid});toast('Ingreso registrado: '+n);
+  var rec={id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,motivo:razon,entrada:now(),salida:null,estado:'En Recinto',guardia:oficial,obs:'',foto:photoData.m||null,authRegistro:currentRole==='auth',authUser:currentRole==='auth'?currentAuthUser.nombre:null};
+  R.unshift(rec);
+  cm();await saveRecord(rec);toast('Ingreso registrado: '+n);
   if(cv==='dashboard')rd();if(cv==='historial')rh();
 }
 async function confirmarIngreso(id){
@@ -1366,34 +1425,38 @@ async function confirmarIngreso(id){
   var est=getEstadoEfectivo(r);
   if(est==='Vencido'){toast('Autorización vencida — no se puede confirmar ingreso','err');return;}
   if(est==='Anticipado'){toast('Aún no es la fecha/hora permitida: '+fdt(r.authDesde),'err');return;}
-  R=R.map(function(x){return x.id===id?Object.assign({},x,{estado:'En Recinto',entrada:now()}):x;});
-  await saveToStore({records:R,nid:nid});
+  var cambios={estado:'En Recinto',entrada:now()};
+  R=R.map(function(x){return x.id===id?Object.assign({},x,cambios):x;});
+  await updateRecord(id,cambios);
   toast('✅ Ingreso confirmado: '+r.nombre);
   rd();raut();
 }
 
 async function reEgreso(id){
-  R=R.map(function(r){return r.id===id?Object.assign({},r,{salida:now(),estado:'Egresado'}):r;});
-  cm();await saveToStore({records:R,nid:nid});toast('Egreso registrado');
+  var cambios={salida:now(),estado:'Egresado'};
+  R=R.map(function(r){return r.id===id?Object.assign({},r,cambios):r;});
+  cm();await updateRecord(id,cambios);toast('Egreso registrado');
   if(cv==='dashboard')rd();if(cv==='historial')rh();
 }
 async function guardarEdicion(id){
+  var cambios={};
   R=R.map(function(r){
     if(r.id!==id)return r;
     var nuevoEstado=document.getElementById('est').value;
-    return Object.assign({},r,{nombre:document.getElementById('en').value.trim()||r.nombre,doc:document.getElementById('ed').value.trim()||r.doc,tipo:document.getElementById('eti').value,placa:document.getElementById('epl').value||null,estado:nuevoEstado,salida:nuevoEstado==='Egresado'&&!r.salida?now():r.salida,guardia:document.getElementById('egu').value,obs:document.getElementById('eobs').value});
+    cambios={nombre:document.getElementById('en').value.trim()||r.nombre,doc:document.getElementById('ed').value.trim()||r.doc,tipo:document.getElementById('eti').value,placa:document.getElementById('epl').value||null,estado:nuevoEstado,salida:nuevoEstado==='Egresado'&&!r.salida?now():r.salida,guardia:document.getElementById('egu').value,obs:document.getElementById('eobs').value};
+    return Object.assign({},r,cambios);
   });
-  cm();await saveToStore({records:R,nid:nid});toast('Registro actualizado');
+  cm();await updateRecord(id,cambios);toast('Registro actualizado');
   if(cv==='admin')ra();if(cv==='dashboard')rd();if(cv==='historial')rh();
 }
 async function eliminar(id){
   if(!confirm('¿Eliminar este registro permanentemente?'))return;
   R=R.filter(function(r){return r.id!==id;});
-  await saveToStore({records:R,nid:nid});toast('Registro eliminado');ra();
+  await deleteRecord(id);toast('Registro eliminado');ra();
 }
 async function clearAll(){
   if(!confirm('¿Borrar TODOS los registros? Esta acción es irreversible.'))return;
-  R=[];nid=1;await saveToStore({records:R,nid:nid});toast('Todos los registros eliminados','err');ra();rd();
+  R=[];nid=1;await deleteAllRecords();toast('Todos los registros eliminados','err');ra();rd();
 }
 function limpiar(){
   ['fn','fd','fp','fpi','fo'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
