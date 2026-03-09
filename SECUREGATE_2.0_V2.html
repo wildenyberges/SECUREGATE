@@ -976,10 +976,12 @@ function fmtLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.ge
 function getEstadoEfectivo(r){
   if(r.estado==='Egresado')return 'Egresado';
   if(r.estado==='En Recinto')return 'En Recinto';
-  // Estado Pendiente (registros de autorización no confirmados por puerta)
+  // Registros de autorización pendientes de confirmación por la puerta
   if(r.estado==='Pendiente'){
-    if(r.authHasta&&new Date()>new Date(r.authHasta))return 'Vencido';
-    return 'Pendiente';
+    var ahora=new Date();
+    if(r.authHasta&&ahora>new Date(r.authHasta))return 'Vencido';
+    if(r.authDesde&&ahora<new Date(r.authDesde))return 'Anticipado'; // Aún no es la fecha/hora
+    return 'Pendiente'; // Dentro de ventana — listo para ingresar
   }
   return r.estado;
 }
@@ -989,6 +991,7 @@ function badgeEstado(r){
     'En Recinto':'<span class="badge ben"><span class="bdot"></span>Activo</span>',
     'Egresado':'<span class="badge beg"><span class="bdot"></span>Egresado</span>',
     'Pendiente':'<span class="badge" style="background:#fef3c7;color:#92400e"><span class="bdot" style="background:#f59e0b"></span>Pendiente</span>',
+    'Anticipado':'<span class="badge" style="background:#ede9fe;color:#6d28d9"><span class="bdot" style="background:#7c3aed"></span>Anticipado</span>',
     'Vencido':'<span class="badge" style="background:#fee2e2;color:#dc2626"><span class="bdot" style="background:#dc2626"></span>Vencido</span>'
   };
   return map[est]||map['En Recinto'];
@@ -998,7 +1001,7 @@ function badgeEstado(r){
 function rd(){
   var hoy=new Date().toDateString();
   var en=R.filter(function(r){return r.estado==='En Recinto';});
-  var pendientes=R.filter(function(r){return getEstadoEfectivo(r)==='Pendiente';});
+  var pendientes=R.filter(function(r){var e=getEstadoEfectivo(r);return e==='Pendiente'||e==='Anticipado';});
   document.getElementById('s1').textContent=en.length;
   document.getElementById('s2').textContent=R.filter(function(r){return r.estado==='En Recinto'&&new Date(r.entrada).toDateString()===hoy;}).length;
   document.getElementById('s3').textContent=R.filter(function(r){return r.salida&&new Date(r.salida).toDateString()===hoy;}).length;
@@ -1007,17 +1010,23 @@ function rd(){
   var tb=document.getElementById('tbd');
   var html='';
 
-  // Sección pendientes de autorización
+  // Sección pendientes de autorización (incluye Anticipados)
   if(pendientes.length&&currentRole!=='auth'){
     html+='<tr><td colspan="5" style="background:#fef3c7;padding:7px 11px;font-size:9px;font-weight:700;color:#92400e;letter-spacing:.08em">⏳ AUTORIZACIONES PENDIENTES DE INGRESO ('+pendientes.length+')</td></tr>';
     html+=pendientes.map(function(r){
-      var fecha=new Date(r.authDesde);var fechaStr=fd(r.authDesde);
-      return '<tr style="background:#fffbeb">'
+      var est=getEstadoEfectivo(r);
+      var fechaStr=fd(r.authDesde);
+      var horaStr=ft(r.authDesde);
+      var esAnticipado=est==='Anticipado';
+      var btnIngreso=esAnticipado
+        ?'<button style="background:#e2e8f0;border:none;color:#94a3b8;padding:5px 9px;border-radius:5px;cursor:not-allowed;font-size:8px;font-weight:700;font-family:inherit" disabled title="Aún no es la fecha/hora permitida">🕐 '+horaStr+'</button>'
+        :'<button style="background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit" onclick="confirmarIngreso('+r.id+')">✅ INGRESÓ</button>';
+      return '<tr style="background:'+(esAnticipado?'#f5f3ff':'#fffbeb')+'">'
         +'<td style="color:#0f172a;font-weight:600">'+r.nombre+'</td>'
-        +'<td><span class="ttag" style="background:#fef3c7;color:#92400e">'+r.tipo+'</span></td>'
-        +'<td style="color:#64748b;font-size:9px">'+r.unidad+'<br><span style="color:#f59e0b;font-weight:700">'+fechaStr+'</span></td>'
+        +'<td><span class="ttag" style="background:'+(esAnticipado?'#ede9fe':'#fef3c7')+';color:'+(esAnticipado?'#6d28d9':'#92400e')+'">'+r.tipo+'</span></td>'
+        +'<td style="color:#64748b;font-size:9px">'+r.unidad+'<br><span style="color:'+(esAnticipado?'#7c3aed':'#f59e0b')+';font-weight:700">'+(esAnticipado?'Desde: ':'')+fechaStr+(esAnticipado?' '+horaStr:'')+'</span></td>'
         +'<td>'+badgeEstado(r)+'</td>'
-        +'<td><div class="acts"><button style="background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit" onclick="confirmarIngreso('+r.id+')">✅ INGRESÓ</button><button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td>'
+        +'<td><div class="acts">'+btnIngreso+'<button class="bg" onclick="om(\'ver\','+r.id+')">VER</button></div></td>'
         +'</tr>';
     }).join('');
   }
@@ -1041,7 +1050,10 @@ function rd(){
 
   // Badge rojo en PANEL si hay pendientes
   var pb=document.getElementById('pendienteBadge');
-  if(pb&&currentRole!=='auth')pb.style.display=pendientes.length?'flex':'none';
+  if(pb&&currentRole!=='auth'){
+    var solosPendientes=pendientes.filter(function(r){return getEstadoEfectivo(r)==='Pendiente';});
+    pb.style.display=solosPendientes.length?'flex':'none';
+  }
   tb.innerHTML=html;
 }
 
@@ -1351,7 +1363,9 @@ async function riModal(){
 async function confirmarIngreso(id){
   var r=R.find(function(x){return x.id===id;});
   if(!r)return;
-  if(getEstadoEfectivo(r)==='Vencido'){toast('Autorización vencida — no se puede confirmar ingreso','err');return;}
+  var est=getEstadoEfectivo(r);
+  if(est==='Vencido'){toast('Autorización vencida — no se puede confirmar ingreso','err');return;}
+  if(est==='Anticipado'){toast('Aún no es la fecha/hora permitida: '+fdt(r.authDesde),'err');return;}
   R=R.map(function(x){return x.id===id?Object.assign({},x,{estado:'En Recinto',entrada:now()}):x;});
   await saveToStore({records:R,nid:nid});
   toast('✅ Ingreso confirmado: '+r.nombre);
