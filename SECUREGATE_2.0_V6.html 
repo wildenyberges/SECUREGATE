@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>SECUREGATE 2.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f4f8;color:#1e293b;font-family:'IBM Plex Mono',monospace;min-height:100vh;font-size:13px}
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#f0f4f8}
+.lcard{background:#fff;border:1px solid #cbd5e1;border-radius:14px;padding:28px 22px;width:100%;max-width:360px;text-align:center;box-shadow:0 4px 18px #00000010}
+.lic{width:52px;height:52px;background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px}
+.lt{font-size:18px;font-weight:700;color:#0f172a;letter-spacing:.06em}
+.ls{font-size:9px;color:#0284c7;font-weight:700;letter-spacing:.14em;margin-bottom:5px}
+.lc{font-size:13px;font-weight:800;color:#0369a1;letter-spacing:.06em;margin-bottom:18px}
+.rrw{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px}
+.rbtn{background:#f8fafc;border:2px solid #e2e8f0;border-radius:9px;padding:9px 4px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit;color:#64748b;letter-spacing:.05em;transition:.15s}
+.rbtn.sel{background:#e0f2fe;border-color:#0284c7;color:#0284c7}
+.pdots{display:flex;justify-content:center;gap:10px;margin:12px 0}
+.pd{width:14px;height:14px;border-radius:50%;background:#e2e8f0;transition:.2s}
+.pd.on{background:#0284c7;box-shadow:0 0 6px #0284c780}
+.ppad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.pk{background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:13px 0;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:#1e293b}
+.pk:active{background:#e0f2fe;border-color:#0284c7}
+.perr{font-size:9px;color:#dc2626;min-height:14px;margin-bottom:4px}
+/* APP */
+#appScreen{display:none}
+header{background:#fff;border-bottom:1px solid #cbd5e1;padding:10px 14px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px #00000012}
+.hr1{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.logo{display:flex;align-items:center;gap:8px}
+.lic2{width:32px;height:32px;background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.lt2{font-size:11px;font-weight:700;letter-spacing:.08em;color:#0f172a}
+.ls2{font-size:7px;color:#0369a1;letter-spacing:.12em;font-weight:700}
+#clock{font-size:16px;font-weight:700;color:#0284c7}
+#dh{font-size:8px;color:#94a3b8;text-align:right}
+.hr2{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sbadge{font-size:8px;font-weight:700;padding:3px 9px;border-radius:20px;background:#e0f2fe;color:#0284c7;letter-spacing:.08em}
+.sbadge.adm{background:#fef3c7;color:#d97706}
+.sbadge.aut{background:#f0fdf4;color:#16a34a}
+.sarea{display:flex;align-items:center;gap:6px}
+.sdot{width:7px;height:7px;border-radius:50%;background:#94a3b8;transition:.3s;flex-shrink:0}
+.sdot.ok{background:#16a34a;box-shadow:0 0 5px #16a34a80}
+.sdot.sy{background:#f59e0b;animation:pu .7s infinite}
+.sdot.er{background:#dc2626}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.3}}
+.slbl{font-size:7px;color:#94a3b8}
+.kbtn{background:transparent;border:1px solid #e2e8f0;color:#64748b;padding:3px 7px;border-radius:5px;cursor:pointer;font-size:12px;display:none}
+.kbtn.vis{display:inline-flex}
+.lbtn{background:transparent;border:1px solid #e2e8f0;color:#94a3b8;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:8px;font-family:inherit}
+nav{display:flex;gap:5px}
+.nb{flex:1;background:transparent;border:1px solid transparent;color:#94a3b8;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:8px;letter-spacing:.04em;font-family:inherit;text-align:center;transition:.15s;position:relative}
+.nb.active{background:#e0f2fe;border-color:#bae6fd;color:#0284c7}
+.pbadge{display:none;position:absolute;top:-4px;right:2px;background:#dc2626;color:#fff;border-radius:10px;font-size:7px;font-weight:700;padding:1px 5px;min-width:16px}
+.pbadge.vis{display:inline-block}
+/* MAIN */
+main{padding:14px;max-width:700px;margin:0 auto}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.st{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
+.stl{font-size:8px;color:#94a3b8;letter-spacing:.12em;margin-bottom:3px}
+.stv{font-size:26px;font-weight:700;line-height:1;margin-bottom:2px}
+.sts{font-size:8px;color:#94a3b8}
+.std{position:absolute;top:11px;right:11px;width:7px;height:7px;border-radius:50%}
+/* PENDING ALERT */
+.palert{display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:13px 16px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px}
+.palert.vis{display:flex}
+.palert-txt{font-size:10px;font-weight:700;color:#dc2626}
+.palert-sub{font-size:8px;color:#ef4444;margin-top:2px}
+.palert-btn{background:#dc2626;border:none;color:#fff;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit;white-space:nowrap;flex-shrink:0}
+/* SECTION */
+.sec{font-size:10px;font-weight:700;color:#0284c7;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.bar{width:3px;height:13px;border-radius:2px;flex-shrink:0}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:16px}
+.cpad{padding:16px}
+.ts{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:420px}
+th{text-align:left;padding:9px 11px;font-size:8px;color:#94a3b8;letter-spacing:.1em;border-bottom:1px solid #f1f5f9;font-weight:700;background:#fafafa}
+td{padding:9px 11px;border-bottom:1px solid #f8fafc;vertical-align:middle;font-size:11px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:8px;font-weight:700}
+.bd{width:5px;height:5px;border-radius:50%}
+.ben{background:#dcfce7;color:#16a34a}.ben .bd{background:#16a34a}
+.beg{background:#f1f5f9;color:#64748b}.beg .bd{background:#94a3b8}
+.bpend{background:#fef2f2;color:#dc2626}.bpend .bd{background:#dc2626;box-shadow:0 0 5px #dc262660;animation:pu 1.2s infinite}
+.ttag{background:#e0f2fe;color:#0284c7;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600}
+/* BUTTONS */
+.bp{background:linear-gradient(135deg,#0284c7,#0369a1);border:none;color:#fff;padding:10px 14px;border-radius:7px;cursor:pointer;font-size:10px;font-weight:700;font-family:inherit;width:100%;margin-top:4px}
+.bpg{background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:10px 14px;border-radius:7px;cursor:pointer;font-size:10px;font-weight:700;font-family:inherit;width:100%;margin-top:4px}
+.bs2{background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit}
+.be2{background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit}
+.bcf{background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit}
+.bg2{background:transparent;border:1px solid #e2e8f0;color:#64748b;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:8px;font-family:inherit}
+.bc{background:#f8fafc;border:1px solid #e2e8f0;color:#475569;padding:10px 14px;border-radius:7px;cursor:pointer;font-size:10px;font-family:inherit;width:100%;margin-top:4px}
+/* FORM */
+.fg{margin-bottom:10px}
+label{font-size:8px;color:#64748b;letter-spacing:.12em;display:block;margin-bottom:4px;font-weight:700}
+.ol{font-weight:400;color:#94a3b8;font-size:8px}
+input,select,textarea{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;color:#1e293b;padding:9px 11px;font-size:11px;font-family:inherit;width:100%;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:#0284c7;background:#fff}
+textarea{resize:vertical;min-height:56px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+/* PHOTO */
+.pz{border:2px dashed #e2e8f0;border-radius:8px;padding:14px;text-align:center;cursor:pointer;background:#fafafa;margin-bottom:10px;transition:.2s}
+.pz:hover,.pz.drag{border-color:#0284c7;background:#e0f2fe20}
+.pzl{font-size:9px;color:#94a3b8}
+.pimg{max-width:100%;max-height:110px;border-radius:6px;margin-top:8px}
+.pclr{font-size:8px;color:#dc2626;cursor:pointer;margin-top:4px;display:inline-block}
+/* SCANNER */
+.scbar{background:linear-gradient(135deg,#0f172a,#1a2e4a);border:1px solid #0284c730;border-radius:8px;padding:11px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px}
+.scbar.vis{display:flex}
+.scst{font-size:8px;font-weight:700;color:#64748b}
+.scst.on{color:#4ade80;animation:pu 1.5s infinite}
+.scind{font-size:8px;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#16a34a;display:none;font-weight:700}
+.scind.vis{display:inline-block}
+.sctgl{background:transparent;border:1px solid #334155;color:#64748b;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:8px;font-weight:700;font-family:inherit;white-space:nowrap;transition:.2s}
+.sctgl.on{background:#e0f2fe;border-color:#0284c7;color:#0284c7}
+/* AUTORIZACIONES reserved form section */
+.authrow{display:none}
+.authrow.vis{display:grid}
+/* HISTORIAL */
+.sbar{display:flex;gap:7px;margin-bottom:9px}
+.sbar input{flex:1}
+.filt{display:flex;gap:7px;margin-bottom:10px}
+.filt select{flex:1;font-size:10px;padding:7px 9px}
+.rcrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.rclbl{font-size:9px;color:#94a3b8}
+.dsbtn{display:none;background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;color:#fff;padding:5px 11px;border-radius:5px;font-size:8px;font-weight:700;cursor:pointer;font-family:inherit}
+.dsbtn.vis{display:inline-block}
+.empty{text-align:center;color:#94a3b8;padding:24px;font-size:10px}
+/* CONFIG */
+.csec{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:14px}
+.ctit{font-size:10px;font-weight:700;color:#0284c7;letter-spacing:.1em;margin-bottom:12px}
+.irow{display:flex;gap:8px;align-items:flex-end}
+.irow input{flex:1}
+.prow{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+.prow input{flex:1}
+.infobox{font-size:8px;color:#94a3b8;margin-top:7px;padding:8px;background:#f8fafc;border-radius:6px;line-height:1.6}
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:#00000066;z-index:200;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.mbox{background:#fff;border:1px solid #e2e8f0;border-radius:14px 14px 0 0;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 24px #00000018}
+.mh{padding:14px 18px 12px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center}
+.mt{font-size:12px;font-weight:700;color:#0f172a}
+.mb{padding:16px 18px}
+.mf{padding:12px 18px;border-top:1px solid #f1f5f9;display:flex;flex-direction:column;gap:7px}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.di{background:#f8fafc;border:1px solid #f1f5f9;border-radius:7px;padding:11px}
+.dl{font-size:8px;color:#94a3b8;letter-spacing:.12em;margin-bottom:3px}
+.dv{font-size:11px;color:#1e293b;font-weight:600}
+.ibox{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:13px;margin-bottom:12px}
+.wbox{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:11px;font-size:10px;color:#92400e}
+.rbox{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:11px;font-size:10px;color:#dc2626;margin-bottom:12px}
+/* TOAST */
+.toast{display:none;position:fixed;bottom:70px;left:12px;right:12px;padding:11px 16px;border-radius:8px;font-size:10px;z-index:999;text-align:center;max-width:700px;margin:0 auto}
+.toast.show{display:block}
+.tsuc{background:#f0fdf4;border:1px solid #86efac;color:#15803d}
+.terr{background:#fef2f2;border:1px solid #fca5a5;color:#dc2626}
+.twrn{background:#fffbeb;border:1px solid #fde68a;color:#d97706}
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN ════ -->
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="lic">🛡️</div>
+    <div class="lt">SECUREGATE 2.0</div>
+    <div class="ls">CONTROL DE ACCESO</div>
+    <div class="lc">CONDOMINIO PUERTO BAHÍA</div>
+    <div class="rrw">
+      <button class="rbtn sel" id="rb-puerta"        onclick="pickRole('puerta')">👮 PUERTA</button>
+      <button class="rbtn"    id="rb-autorizaciones" onclick="pickRole('autorizaciones')">📋 AUTORIZ.</button>
+      <button class="rbtn"    id="rb-admin"          onclick="pickRole('admin')">🔧 ADMIN</button>
+    </div>
+    <div class="pdots">
+      <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+    </div>
+    <div class="perr" id="perr"></div>
+    <div class="ppad">
+      <button class="pk" onclick="pk('1')">1</button><button class="pk" onclick="pk('2')">2</button><button class="pk" onclick="pk('3')">3</button>
+      <button class="pk" onclick="pk('4')">4</button><button class="pk" onclick="pk('5')">5</button><button class="pk" onclick="pk('6')">6</button>
+      <button class="pk" onclick="pk('7')">7</button><button class="pk" onclick="pk('8')">8</button><button class="pk" onclick="pk('9')">9</button>
+      <button class="pk" onclick="pk('C')" style="color:#dc2626">C</button>
+      <button class="pk" onclick="pk('0')">0</button>
+      <button class="pk" onclick="pk('⌫')">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="appScreen">
+  <header>
+    <div class="hr1">
+      <div class="logo">
+        <div class="lic2">🛡️</div>
+        <div><div class="lt2">SECUREGATE 2.0</div><div class="ls2">CONDOMINIO PUERTO BAHÍA</div></div>
+      </div>
+      <div style="text-align:right"><div id="clock">--:--</div><div id="dh">---</div></div>
+    </div>
+    <div class="hr2">
+      <span class="sbadge" id="sbadge">👮 PUERTA</span>
+      <div class="sarea">
+        <div class="sdot" id="sdot"></div>
+        <span class="slbl">SYNC</span>
+        <button class="kbtn" id="kbtn" onclick="openPinModal()" title="Cambiar contraseñas">🔑</button>
+        <button class="lbtn" onclick="logout()">SALIR</button>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div id="vd">
+      <!-- Pending alert (puerta + admin) -->
+      <div class="palert" id="palert">
+        <div>
+          <div class="palert-txt" id="palert-txt">🔴 0 AUTORIZACIONES PENDIENTES</div>
+          <div class="palert-sub">Hay visitantes autorizados por llegar</div>
+        </div>
+        <button class="palert-btn" onclick="sv('autview')">VER AHORA</button>
+      </div>
+      <div class="g2">
+        <div class="st" style="border-color:#bbf7d0"><div class="std" style="background:#16a34a;box-shadow:0 0 6px #16a34a80"></div><div class="stl">EN RECINTO</div><div class="stv" id="s1" style="color:#16a34a">0</div><div class="sts">activos</div></div>
+        <div class="st" style="border-color:#bae6fd"><div class="std" style="background:#0284c7;box-shadow:0 0 6px #0284c780"></div><div class="stl">INGRESOS HOY</div><div class="stv" id="s2" style="color:#0284c7">0</div><div class="sts">entradas</div></div>
+        <div class="st" style="border-color:#fecaca"><div class="std" style="background:#dc2626;box-shadow:0 0 6px #dc262680"></div><div class="stl">PENDIENTES</div><div class="stv" id="s5" style="color:#dc2626">0</div><div class="sts">autorizaciones</div></div>
+        <div class="st" style="border-color:#fed7aa"><div class="std" style="background:#ea580c;box-shadow:0 0 6px #ea580c80"></div><div class="stl">TOTAL</div><div class="stv" id="s4" style="color:#ea580c">0</div><div class="sts">registros</div></div>
+      </div>
+      <div class="sec"><span class="bar" style="background:#16a34a"></span>VISITANTES EN RECINTO</div>
+      <div class="card"><div class="ts"><table><thead><tr><th>NOMBRE</th><th>TIPO</th><th>DESTINO</th><th>PERS.</th><th>HORA</th><th>ACCIÓN</th></tr></thead><tbody id="tbd"></tbody></table></div></div>
+      <button class="bp" onclick="sv('registro')">+ REGISTRAR NUEVO INGRESO</button>
+    </div>
+
+    <!-- REGISTRO -->
+    <div id="vr" style="display:none">
+      <div class="sec"><span class="bar" style="background:#0284c7"></span>
+        <span id="reg-title">NUEVO INGRESO</span>
+      </div>
+      <!-- INFO autorizaciones -->
+      <div id="auth-info" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:11px;margin-bottom:12px;font-size:9px;color:#15803d;line-height:1.6">
+        📋 <strong>MODO AUTORIZACIÓN:</strong> Registre visitas futuras. La fecha/hora de ingreso debe ser al menos 1 minuto en el futuro. El visitante quedará como <strong>PENDIENTE</strong> hasta que Puerta confirme su llegada.
+      </div>
+      <!-- Scanner (puerta only) -->
+      <div class="scbar" id="scbar">
+        <div>
+          <div style="font-size:9px;color:#94a3b8;margin-bottom:3px;letter-spacing:.08em">LECTOR CÉDULA PDF417 (USB HID)</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+            <span class="scst" id="scst">⬤ INACTIVO</span>
+            <span class="scind" id="scind">✅ CÉDULA LEÍDA</span>
+          </div>
+        </div>
+        <button class="sctgl" id="sctgl" onclick="toggleScan()">ACTIVAR LECTOR</button>
+      </div>
+      <input type="text" id="scanHidden" autocomplete="off"
+        style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;pointer-events:none"
+        onkeydown="onScanKey(event)" oninput="onScanInput(event)"/>
+
+      <div class="card cpad">
+        <div class="fr">
+          <div class="fg"><label>NOMBRE COMPLETO *</label><input id="fn" placeholder="Nombre y apellido"/></div>
+          <div class="fg"><label>DOCUMENTO / CÉDULA *</label><input id="fd" placeholder="V-12345678 / RIF-J-..."/></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>TIPO *</label><select id="ft"><option value="">Seleccionar...</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor</option><option>Servicio</option><option>Contratista Externo</option><option>Empleado</option><option>Otro</option></select></div>
+          <div class="fg"><label>PLACA *</label><input id="fp" placeholder="ABC-123 / SIN VEHÍCULO"/></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>TORRE / ÁREA *</label><select id="ftr"><option value="">Seleccionar...</option><option>Apartamentos Valle Alto</option><option>Apartamentos Valle</option><option>Villa Montaña</option><option>Villa Marina</option><option>Villa Playa</option><option>La Marina</option><option>Hotel Bannister</option><option>Administración HMS</option><option>Proyecto Bancalari</option><option>Otras</option></select></div>
+          <div class="fg"><label>N° DE PROPIEDAD *</label><input id="fpi" placeholder="Ej. 4B / N/A"/></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>CANTIDAD DE PERSONAS *</label><input id="fcant" type="number" min="1" max="99" placeholder="Ej. 2" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div>
+          <div class="fg"><label>AUTORIZADO POR *</label><input id="fg2" placeholder="Nombre de quien autoriza"/></div>
+        </div>
+
+        <!-- PUERTA / ADMIN: fecha límite opcional -->
+        <div class="fr" id="row-puerta-dates">
+          <div class="fg"><label>FECHA LÍMITE <span class="ol">(opcional — hora auto 23:59)</span></label><input id="ffl" type="date"/></div>
+        </div>
+
+        <!-- AUTORIZACIONES: fecha/hora ingreso + fecha límite -->
+        <div class="fr authrow" id="row-auth-dates">
+          <div class="fg"><label>FECHA/HORA INGRESO AUTORIZADO *</label><input id="fauth" type="datetime-local"/></div>
+          <div class="fg"><label>FECHA LÍMITE <span class="ol">(opcional — hora auto 23:59)</span></label><input id="ffla" type="date"/></div>
+        </div>
+
+        <div class="fg">
+          <label>FOTO DEL ID <span class="ol">(opcional)</span></label>
+          <div class="pz" id="dz" ondragover="dzDrag(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)" onclick="document.getElementById('fi').click()">
+            <div class="pzl">📷 DRAG & DROP · CTRL+V · CLIC PARA CÁMARA</div>
+            <img id="pimg" class="pimg" style="display:none"/>
+            <span id="pclr" class="pclr" style="display:none" onclick="clrPhoto(event)">✕ QUITAR FOTO</span>
+          </div>
+          <input type="file" id="fi" accept="image/*" capture="environment" style="display:none" onchange="fileChg(event)"/>
+        </div>
+        <div class="fg"><label>OBSERVACIONES <span class="ol">(opcional)</span></label><textarea id="fo" placeholder="Equipos que ingresa, novedades, autorizaciones..."></textarea></div>
+        <button class="bp" id="reg-btn" onclick="regIngreso()">✅ REGISTRAR INGRESO</button>
+        <button class="bc" onclick="limpiar()">LIMPIAR FORMULARIO</button>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="vh" style="display:none">
+      <div class="sbar"><input id="si" placeholder="🔍 Nombre, documento, placa..." oninput="rh()"/></div>
+      <div class="filt">
+        <select id="fe" onchange="rh()"><option>Todos</option><option>Pendiente</option><option>En Recinto</option><option>Egresado</option></select>
+        <select id="fti" onchange="rh()"><option>Todos Tipos</option><option>Visita</option><option>Propietario</option><option>Residente</option><option>Proveedor</option><option>Servicio</option><option>Contratista Externo</option><option>Empleado</option></select>
+      </div>
+      <div class="rcrow">
+        <span class="rclbl" id="rc">0 registros</span>
+        <button class="dsbtn" id="dsbtn" onclick="delSel()">🗑 ELIMINAR SELEC.</button>
+      </div>
+      <div id="authZone" style="display:none;margin-bottom:10px">
+        <button class="be2" style="width:100%;padding:9px;font-size:9px" onclick="clrMine()">🗑 BORRAR MI HISTORIAL (solo mis registros)</button>
+      </div>
+      <div class="card"><div class="ts"><table><thead id="hhead"></thead><tbody id="tbh"></tbody></table></div></div>
+    </div>
+
+    <!-- AUTORIZACIONES VIEW (puerta + admin) -->
+    <div id="vaut" style="display:none">
+      <!-- Email config info (puerta only) -->
+      <div id="vaut-email" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:16px">📧</span>
+        <div>
+          <div style="font-size:8px;color:#94a3b8;letter-spacing:.1em;margin-bottom:2px">CORREO DE NOTIFICACIONES CONFIGURADO</div>
+          <div id="vaut-email-val" style="font-size:11px;font-weight:700;color:#0284c7">—</div>
+        </div>
+      </div>
+      <div class="rbox" id="aut-alert" style="display:none">
+        🔴 <strong id="aut-alert-txt"></strong> — Visitantes autorizados pendientes de confirmación de ingreso.
+      </div>
+      <div class="sec"><span class="bar" style="background:#dc2626"></span>AUTORIZACIONES / RESERVAS</div>
+      <div class="filt" style="margin-bottom:10px">
+        <select id="autfe" onchange="raut()"><option>Pendiente</option><option>En Recinto</option><option>Egresado</option><option>Todos</option></select>
+      </div>
+      <div class="rclbl" id="autrc" style="margin-bottom:9px"></div>
+      <div class="card"><div class="ts">
+        <table><thead><tr>
+          <th>NOMBRE</th><th>TIPO</th><th>DESTINO</th><th>PERS.</th><th>INGRESO AUTORIZAD.</th><th>AUTORIZADO POR</th><th>ESTADO</th><th>ACCIÓN</th>
+        </tr></thead><tbody id="tbaut"></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- CONFIG (admin) -->
+    <div id="vc" style="display:none">
+      <div class="sec"><span class="bar" style="background:#d97706"></span>CONFIGURACIÓN</div>
+      <div class="csec">
+        <div class="ctit">📧 CORREO DE NOTIFICACIONES</div>
+        <div class="fg"><label>CORREO RECEPTOR</label>
+          <div class="irow">
+            <input id="emIn" type="email" placeholder="correo@dominio.com"/>
+            <button class="bs2" style="padding:9px 12px;font-size:9px;flex-shrink:0" onclick="saveEmail()">GUARDAR</button>
+          </div>
+        </div>
+        <div id="emSt" style="font-size:9px;color:#94a3b8;margin-top:4px"></div>
+        <div class="infobox">ℹ️ Este correo recibirá notificaciones de ingreso, egreso y autorizaciones pendientes. Se activa al conectar con Firebase/backend.</div>
+      </div>
+      <div class="csec">
+        <div class="ctit">🔑 CAMBIAR CONTRASEÑAS</div>
+        <div class="fr">
+          <div class="fg"><label>PIN — PUERTA</label><div class="prow"><input id="cp-puerta" type="password" placeholder="4 dígitos" maxlength="4"/><button class="bs2" style="padding:9px 10px;font-size:8px;flex-shrink:0" onclick="savePin('puerta','cp-puerta')">OK</button></div></div>
+          <div class="fg"><label>PIN — AUTORIZACIONES</label><div class="prow"><input id="cp-autorizaciones" type="password" placeholder="4 dígitos" maxlength="4"/><button class="bs2" style="padding:9px 10px;font-size:8px;flex-shrink:0" onclick="savePin('autorizaciones','cp-autorizaciones')">OK</button></div></div>
+        </div>
+        <div style="max-width:50%"><label>PIN — ADMIN</label><div class="prow"><input id="cp-admin" type="password" placeholder="4 dígitos" maxlength="4"/><button class="bs2" style="background:linear-gradient(135deg,#d97706,#b45309);padding:9px 10px;font-size:8px;flex-shrink:0" onclick="savePin('admin','cp-admin')">OK</button></div></div>
+      </div>
+      <div class="sec"><span class="bar" style="background:#dc2626"></span>TODOS LOS REGISTROS</div>
+      <div class="rcrow">
+        <span class="rclbl" id="arc"></span>
+        <button class="dsbtn" id="adsbtn" onclick="adminDelSel()">🗑 ELIMINAR SELEC.</button>
+      </div>
+      <div class="card"><div class="ts">
+        <table><thead><tr>
+          <th><input type="checkbox" id="acball" onchange="adminCbAll(this.checked)"/></th>
+          <th>NOMBRE</th><th>TIPO</th><th>DESTINO</th><th>ENTRADA</th><th>PERS.</th><th>ESTADO</th><th>ACC</th>
+        </tr></thead><tbody id="tba"></tbody></table>
+      </div></div>
+      <button class="be2" style="width:100%;padding:10px;font-size:9px;margin-top:4px" onclick="delAllAdmin()">🗑 ELIMINAR TODOS LOS REGISTROS</button>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="modal">
+  <div class="mbox">
+    <div class="mh"><div class="mt" id="mtit"></div><button class="bg2" onclick="cm()" style="padding:4px 9px;font-size:12px">✕</button></div>
+    <div class="mb" id="mbody"></div>
+    <div class="mf" id="mfoot"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS ──
+const SK='sg:rec:v4',PK='sg:pins:v4',SET='sg:cfg:v4';
+let PINS={puerta:'1234',autorizaciones:'5678',admin:'9999'};
+let CFG={email:''};
+let R=[],nid=1,cv='dashboard',role=null,pendingRole='puerta',pin='',lhash='',lphash='';
+let photo=null,scanOn=false,scanBuf='',scanTimer=null,selIds=new Set(),aSelIds=new Set();
+
+// ── CLOCK ──
+setInterval(()=>{
+  const n=new Date();
+  const cl=document.getElementById('clock'),dh=document.getElementById('dh');
+  if(cl)cl.textContent=n.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(dh)dh.textContent=n.toLocaleDateString('es-VE',{weekday:'short',day:'2-digit',month:'short'}).toUpperCase();
+},1000);
+
+// ── LOGIN ──
+function pickRole(r){
+  pendingRole=r;pin='';updDots();document.getElementById('perr').textContent='';
+  ['puerta','autorizaciones','admin'].forEach(x=>document.getElementById('rb-'+x).classList.toggle('sel',x===r));
+}
+function updDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('on',i<pin.length);}
+function pk(k){
+  const err=document.getElementById('perr');
+  if(k==='C'){pin='';err.textContent='';}
+  else if(k==='⌫'){pin=pin.slice(0,-1);}
+  else if(pin.length<4)pin+=k;
+  updDots();
+  if(pin.length===4){
+    if(pin===PINS[pendingRole]){
+      role=pendingRole;
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('appScreen').style.display='block';
+      applyRole();init();
+    } else {
+      err.textContent='PIN incorrecto. Intente de nuevo.';
+      pin='';updDots();
+    }
+  }
+}
+
+function applyRole(){
+  const lbl={puerta:'👮 PUERTA PRINCIPAL',autorizaciones:'📋 AUTORIZACIONES',admin:'🔧 ADMINISTRADOR'};
+  const badge=document.getElementById('sbadge');
+  badge.textContent=lbl[role];
+  badge.className='sbadge'+(role==='admin'?' adm':role==='autorizaciones'?' aut':'');
+  document.getElementById('kbtn').classList.toggle('vis',role==='admin');
+
+  const tabs={
+    puerta:[['📊 PANEL','dashboard'],['📋 INGRESO','registro'],['🗂 HISTORIAL','historial'],['📅 AUTORIZACIONES','autview']],
+    autorizaciones:[['📋 INGRESAR','registro'],['🗂 MI HISTORIAL','historial']],
+    admin:[['📊 PANEL','dashboard'],['🗂 HISTORIAL','historial'],['📅 AUTORIZACIONES','autview'],['⚙️ CONFIG','config']]
+  };
+  const nav=document.getElementById('nav');nav.innerHTML='';
+  (tabs[role]||tabs.puerta).forEach(([lbl,v])=>{
+    const b=document.createElement('button');
+    b.className='nb';
+    b.dataset.view=v;
+    b.onclick=()=>sv(v);
+    if(v==='autview'){
+      b.innerHTML=lbl+' <span class="pbadge" id="pb-'+v+'">0</span>';
+    } else {
+      b.textContent=lbl;
+    }
+    nav.appendChild(b);
+  });
+
+  // Form mode
+  document.getElementById('scbar').classList.toggle('vis',role==='puerta');
+  document.getElementById('auth-info').style.display=role==='autorizaciones'?'block':'none';
+  document.getElementById('row-puerta-dates').style.display=role==='autorizaciones'?'none':'block';
+  document.getElementById('row-auth-dates').classList.toggle('vis',role==='autorizaciones');
+
+  // Autorizar form label
+  document.getElementById('reg-title').textContent=role==='autorizaciones'?'NUEVA AUTORIZACIÓN / RESERVA':'NUEVO INGRESO';
+  document.getElementById('reg-btn').textContent=role==='autorizaciones'?'📋 REGISTRAR AUTORIZACIÓN':'✅ REGISTRAR INGRESO';
+
+  // Pending alert visibility
+  document.getElementById('palert').style.display=(role==='puerta'||role==='admin')?'':'none';
+
+  // AuthZone (autorizaciones can clear own)
+  document.getElementById('authZone').style.display=role==='autorizaciones'?'block':'none';
+
+  // Set min datetime for auth form
+  if(role==='autorizaciones')setMinAuth();
+}
+
+function setMinAuth(){
+  const el=document.getElementById('fauth');
+  if(!el)return;
+  const min=new Date(Date.now()+60000);
+  el.min=min.toISOString().slice(0,16);
+}
+
+function logout(){
+  if(scanOn)toggleScan();
+  role=null;pin='';pendingRole='puerta';
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+// ── SYNC ──
+function ssd(s){const d=document.getElementById('sdot');if(d)d.className='sdot '+s;}
+async function saveR(data){ssd('sy');try{await window.storage.set(SK,JSON.stringify(data),true);ssd('ok');}catch(e){ssd('er');}}
+async function loadR(){try{const r=await window.storage.get(SK,true);if(r&&r.value)return JSON.parse(r.value);}catch(e){}return null;}
+async function savePins(){try{await window.storage.set(PK,JSON.stringify(PINS),true);}catch(e){}}
+async function loadPins(){try{const r=await window.storage.get(PK,true);if(r&&r.value)PINS=JSON.parse(r.value);}catch(e){}}
+async function saveCfg(){try{await window.storage.set(SET,JSON.stringify(CFG),true);}catch(e){}}
+async function loadCfg(){try{const r=await window.storage.get(SET,true);if(r&&r.value)CFG=JSON.parse(r.value);}catch(e){}}
+
+setInterval(async()=>{
+  try{
+    const r=await window.storage.get(SK,true);
+    if(r&&r.value){const h=r.value.substring(0,80);if(h!==lhash){lhash=h;const p=JSON.parse(r.value);if(p&&p.records){R=p.records;nid=p.nid||R.length+1;rvs();}ssd('ok');}}
+    const rp=await window.storage.get(PK,true);
+    if(rp&&rp.value){const h=rp.value.substring(0,40);if(h!==lphash){lphash=h;PINS=JSON.parse(rp.value);}}
+  }catch(e){ssd('er');}
+},8000);
+
+function rvs(){
+  if(cv==='dashboard')rd();
+  if(cv==='historial')rh();
+  if(cv==='autview')raut();
+  if(cv==='config')ra();
+  updPendBadge();
+}
+
+async function init(){
+  await loadPins();await loadCfg();
+  const data=await loadR();
+  if(data&&data.records&&data.records.length>0){R=data.records;nid=data.nid||R.length+1;}
+  else{
+    const futuro=new Date(Date.now()+3600000).toISOString();
+    R=[
+      {id:1,nombre:"Carlos Mendoza",doc:"V-12345678",tipo:"Visita",unidad:"Apartamentos Valle - 4B",placa:"ABC-123",cant:2,fechaAutorizada:null,fechaLim:null,entrada:"2026-03-07T08:15:00",salida:"2026-03-07T10:30:00",estado:"Egresado",guardia:"J. Ramírez",obs:"",foto:null,por:"puerta"},
+      {id:2,nombre:"Distribuidora Express",doc:"RIF-J-29876543",tipo:"Proveedor",unidad:"Administración HMS",placa:"FMD-887",cant:1,fechaAutorizada:null,fechaLim:null,entrada:"2026-03-07T09:00:00",salida:null,estado:"En Recinto",guardia:"J. Ramírez",obs:"",foto:null,por:"puerta"},
+      {id:3,nombre:"Familia Rodríguez",doc:"V-19876543",tipo:"Visita",unidad:"Villa Marina - 2A",placa:"RDZ-220",cant:4,fechaAutorizada:futuro,fechaLim:null,entrada:null,salida:null,estado:"Pendiente",guardia:"María González",obs:"Cumpleaños, traen torta",foto:null,por:"autorizaciones"}
+    ];nid=4;
+  }
+  const ei=document.getElementById('emIn');if(ei&&CFG.email)ei.value=CFG.email;
+  const es=document.getElementById('emSt');if(es&&CFG.email)es.textContent='📧 Correo activo: '+CFG.email;
+  sv('dashboard');
+  updPendBadge();
+}
+
+// ── HELPERS ──
+function ft(d){if(!d)return'—';return new Date(d).toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});}
+function fd(d){if(!d)return'—';return new Date(d).toLocaleDateString('es-VE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fdt(d){if(!d)return'—';return fd(d)+' '+ft(d);}
+function now(){return new Date().toISOString();}
+
+function updPendBadge(){
+  const cnt=R.filter(r=>r.estado==='Pendiente').length;
+  document.querySelectorAll('[id^="pb-autview"]').forEach(el=>{
+    el.textContent=cnt;el.classList.toggle('vis',cnt>0);
+  });
+  const pa=document.getElementById('palert');
+  if(pa&&(role==='puerta'||role==='admin')){
+    pa.classList.toggle('vis',cnt>0);
+    const pt=document.getElementById('palert-txt');
+    if(pt)pt.textContent='🔴 '+cnt+' AUTORIZACIÓN'+(cnt!==1?'ES':'')+' PENDIENTE'+(cnt!==1?'S':'');
+  }
+}
+
+// ── VIEW SWITCH ──
+function sv(v){
+  cv=v;
+  ['vd','vr','vh','vaut','vc'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  const m={dashboard:'vd',registro:'vr',historial:'vh',autview:'vaut',config:'vc'};
+  if(m[v])document.getElementById(m[v]).style.display='block';
+  document.querySelectorAll('#nav .nb').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===v);
+  });
+  if(v==='dashboard')rd();
+  if(v==='historial')rh();
+  if(v==='autview')raut();
+  if(v==='config')ra();
+  if(v==='registro'&&role==='autorizaciones')setMinAuth();
+}
+
+// ── DASHBOARD ──
+function rd(){
+  const hoy=new Date().toDateString();
+  const pend=R.filter(r=>r.estado==='Pendiente').length;
+  document.getElementById('s1').textContent=R.filter(r=>r.estado==='En Recinto').length;
+  document.getElementById('s2').textContent=R.filter(r=>r.entrada&&new Date(r.entrada).toDateString()===hoy).length;
+  document.getElementById('s5').textContent=pend;
+  document.getElementById('s4').textContent=R.length;
+  updPendBadge();
+  const en=R.filter(r=>r.estado==='En Recinto');
+  const tb=document.getElementById('tbd');
+  if(!en.length){tb.innerHTML='<tr><td colspan="6" class="empty">No hay visitantes en recinto</td></tr>';return;}
+  tb.innerHTML=en.map(r=>`<tr>
+    <td style="font-weight:700">${r.nombre}</td>
+    <td><span class="ttag">${r.tipo}</span></td>
+    <td style="font-size:9px;color:#64748b">${r.unidad}</td>
+    <td style="font-weight:700;color:#0284c7">${r.cant||1}</td>
+    <td style="color:#0284c7">${ft(r.entrada)}</td>
+    <td><div style="display:flex;gap:5px"><button class="bs2" onclick="om('salida',${r.id})">EGRESO</button><button class="bg2" onclick="om('ver',${r.id})">VER</button></div></td>
+  </tr>`).join('');
+}
+
+// ── AUTORIZACIONES VIEW ──
+function raut(){
+  // Show email panel only for puerta
+  const emailBox=document.getElementById('vaut-email');
+  const emailVal=document.getElementById('vaut-email-val');
+  if(emailBox&&emailVal){
+    emailBox.style.display=role==='puerta'?'flex':'none';
+    emailVal.textContent=CFG.email||'No configurado';
+  }
+  const filtro=document.getElementById('autfe')?.value||'Pendiente';
+  const base=R.filter(r=>r.por==='autorizaciones'||(r.estado==='Pendiente'));
+  const f=base.filter(r=>filtro==='Todos'||r.estado===filtro)
+    .sort((a,b)=>{
+      const da=new Date(a.fechaAutorizada||a.entrada||0);
+      const db=new Date(b.fechaAutorizada||b.entrada||0);
+      return da-db;
+    });
+  const pend=f.filter(r=>r.estado==='Pendiente').length;
+  const aa=document.getElementById('aut-alert');
+  if(aa){aa.style.display=pend>0?'block':'none';const at=document.getElementById('aut-alert-txt');if(at)at.textContent=pend+' AUTORIZACIÓN'+(pend!==1?'ES':'')+' PENDIENTE'+(pend!==1?'S':'');}
+  document.getElementById('autrc').textContent=f.length+' registro'+(f.length!==1?'s':'');
+  const tb=document.getElementById('tbaut');
+  if(!f.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros en esta categoría</td></tr>';return;}
+  const canConfirm=role==='puerta'||role==='admin';
+  tb.innerHTML=f.map(r=>`<tr style="${r.estado==='Pendiente'?'background:#fff8f8':''}">
+    <td style="font-weight:700;font-size:10px">${r.nombre}<br><span style="font-size:8px;color:#94a3b8">${r.doc}</span></td>
+    <td><span class="ttag">${r.tipo}</span></td>
+    <td style="font-size:9px;color:#64748b">${r.unidad}</td>
+    <td style="font-weight:700;color:#0284c7">${r.cant||1}</td>
+    <td style="font-size:9px;color:${r.estado==='Pendiente'?'#dc2626':'#0284c7'};font-weight:700">${fdt(r.fechaAutorizada)}</td>
+    <td style="font-size:9px;color:#64748b">${r.guardia||'—'}</td>
+    <td><span class="badge ${r.estado==='Pendiente'?'bpend':r.estado==='En Recinto'?'ben':'beg'}"><span class="bd"></span>${r.estado}</span></td>
+    <td><div style="display:flex;gap:4px">
+      ${canConfirm&&r.estado==='Pendiente'?`<button class="bcf" onclick="confirmarIngreso(${r.id})">CONFIRMAR</button>`:''}
+      ${r.estado==='En Recinto'&&(canConfirm)?`<button class="bs2" onclick="om('salida',${r.id})">EGRESO</button>`:''}
+      <button class="bg2" onclick="om('ver',${r.id})">VER</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function confirmarIngreso(id){
+  R=R.map(r=>r.id===id?{...r,entrada:now(),estado:'En Recinto'}:r);
+  await saveR({records:R,nid:nid});
+  toast('✅ Ingreso confirmado');raut();rd();updPendBadge();
+}
+
+// ── HISTORIAL ──
+function rh(){
+  selIds.clear();updDS();
+  const q=(document.getElementById('si')?.value||'').toLowerCase();
+  const fe=document.getElementById('fe')?.value||'Todos';
+  const fti=document.getElementById('fti')?.value||'Todos Tipos';
+  let base=role==='autorizaciones'?R.filter(r=>r.por==='autorizaciones'):R;
+  const f=base.filter(r=>{
+    const m=!q||r.nombre.toLowerCase().includes(q)||(r.doc||'').includes(q)||(r.placa||'').toLowerCase().includes(q)||r.unidad.toLowerCase().includes(q);
+    return m&&(fe==='Todos'||r.estado===fe)&&(fti==='Todos Tipos'||r.tipo===fti);
+  }).sort((a,b)=>new Date(b.fechaAutorizada||b.entrada||0)-new Date(a.fechaAutorizada||a.entrada||0));
+  document.getElementById('rc').textContent=f.length+' registro'+(f.length!==1?'s':'');
+  const showCb=role==='admin'||role==='puerta';
+  document.getElementById('hhead').innerHTML='<tr>'+
+    (showCb?'<th><input type="checkbox" id="cball" onchange="toggleAllCb(this.checked)"/></th>':'')+
+    '<th>#</th><th>NOMBRE</th><th>TIPO</th><th>ENTRADA</th><th>PERS.</th><th>ESTADO</th><th>ACC</th></tr>';
+  const tb=document.getElementById('tbh');
+  if(!f.length){tb.innerHTML=`<tr><td colspan="${showCb?8:7}" class="empty">Sin resultados</td></tr>`;return;}
+  tb.innerHTML=f.map(r=>`<tr>
+    ${showCb?`<td><input type="checkbox" class="rcb" data-id="${r.id}" onchange="togCb(${r.id},this.checked)"/></td>`:''}
+    <td style="color:#94a3b8">#${r.id}</td>
+    <td style="font-weight:600;font-size:10px">${r.nombre}</td>
+    <td><span class="ttag">${r.tipo}</span></td>
+    <td style="color:#0284c7;font-size:9px">${fdt(r.fechaAutorizada||r.entrada)}</td>
+    <td style="font-weight:700;color:#0284c7">${r.cant||1}</td>
+    <td><span class="badge ${r.estado==='En Recinto'?'ben':r.estado==='Pendiente'?'bpend':'beg'}"><span class="bd"></span>${r.estado}</span></td>
+    <td><div style="display:flex;gap:4px">${r.estado==='En Recinto'?`<button class="bs2" onclick="om('salida',${r.id})">EGRESO</button>`:''}<button class="bg2" onclick="om('ver',${r.id})">VER</button></div></td>
+  </tr>`).join('');
+}
+function togCb(id,on){on?selIds.add(id):selIds.delete(id);updDS();}
+function toggleAllCb(on){document.querySelectorAll('.rcb').forEach(cb=>{cb.checked=on;const id=parseInt(cb.dataset.id);on?selIds.add(id):selIds.delete(id);});updDS();}
+function updDS(){const b=document.getElementById('dsbtn');if(b){b.classList.toggle('vis',selIds.size>0);b.textContent=`🗑 ELIMINAR SELEC. (${selIds.size})`;}}
+async function delSel(){
+  if(!selIds.size)return;
+  if(!confirm(`¿Eliminar ${selIds.size} registro(s)?`))return;
+  R=R.filter(r=>!selIds.has(r.id));selIds.clear();
+  await saveR({records:R,nid:nid});toast('Registros eliminados','wrn');rh();rd();updPendBadge();
+}
+async function clrMine(){
+  if(!confirm('¿Eliminar todos sus registros de autorizaciones?'))return;
+  R=R.filter(r=>r.por!=='autorizaciones');
+  await saveR({records:R,nid:nid});toast('Su historial eliminado','wrn');rh();rd();updPendBadge();
+}
+
+// ── CONFIG ──
+function ra(){
+  const s=[...R].sort((a,b)=>new Date(b.fechaAutorizada||b.entrada||0)-new Date(a.fechaAutorizada||a.entrada||0));
+  document.getElementById('arc').textContent=s.length+' registros totales';
+  aSelIds.clear();updADS();
+  const tb=document.getElementById('tba');
+  if(!s.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros</td></tr>';return;}
+  tb.innerHTML=s.map(r=>`<tr>
+    <td><input type="checkbox" class="acb" data-id="${r.id}" onchange="togACb(${r.id},this.checked)"/></td>
+    <td style="font-weight:600;font-size:10px">${r.nombre}</td>
+    <td><span class="ttag">${r.tipo}</span></td>
+    <td style="font-size:9px;color:#64748b">${r.unidad}</td>
+    <td style="color:#0284c7;font-size:9px">${fdt(r.fechaAutorizada||r.entrada)}</td>
+    <td style="font-weight:700;color:#0284c7">${r.cant||1}</td>
+    <td><span class="badge ${r.estado==='En Recinto'?'ben':r.estado==='Pendiente'?'bpend':'beg'}"><span class="bd"></span>${r.estado}</span></td>
+    <td><div style="display:flex;gap:4px"><button class="bg2" onclick="om('ver',${r.id})">VER</button><button class="be2" style="padding:5px 7px" onclick="aDelOne(${r.id})">✕</button></div></td>
+  </tr>`).join('');
+}
+function togACb(id,on){on?aSelIds.add(id):aSelIds.delete(id);updADS();}
+function adminCbAll(on){document.querySelectorAll('.acb').forEach(cb=>{cb.checked=on;const id=parseInt(cb.dataset.id);on?aSelIds.add(id):aSelIds.delete(id);});updADS();}
+function updADS(){const b=document.getElementById('adsbtn');if(b){b.classList.toggle('vis',aSelIds.size>0);b.textContent=`🗑 ELIMINAR SELEC. (${aSelIds.size})`;}}
+async function adminDelSel(){if(!aSelIds.size)return;if(!confirm(`¿Eliminar ${aSelIds.size} registro(s)?`))return;R=R.filter(r=>!aSelIds.has(r.id));aSelIds.clear();await saveR({records:R,nid:nid});toast('Registros eliminados','wrn');ra();rd();updPendBadge();}
+async function aDelOne(id){if(!confirm('¿Eliminar este registro?'))return;R=R.filter(r=>r.id!==id);await saveR({records:R,nid:nid});toast('Registro eliminado','wrn');ra();rd();updPendBadge();}
+async function delAllAdmin(){if(!confirm('¿Eliminar TODOS los registros?'))return;R=[];await saveR({records:R,nid:nid});toast('Todos eliminados','wrn');ra();rd();updPendBadge();}
+
+async function saveEmail(){
+  const v=document.getElementById('emIn')?.value.trim();
+  if(!v||!v.includes('@')){toast('Ingrese un correo válido','err');return;}
+  CFG.email=v;await saveCfg();
+  document.getElementById('emSt').textContent='✅ Correo guardado: '+v;
+  toast('Correo de notificaciones guardado');
+}
+
+// ── PIN MODAL ──
+function openPinModal(){
+  document.getElementById('mtit').textContent='🔑 CAMBIAR CONTRASEÑAS';
+  document.getElementById('mbody').innerHTML=
+    ['puerta','autorizaciones','admin'].map(r=>`
+    <div class="fg">
+      <label>NUEVO PIN — ${r.toUpperCase()}</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="mp-${r}" type="password" placeholder="4 dígitos" maxlength="4"/>
+        <button class="${r==='admin'?'be2':'bs2'}" style="padding:9px 10px;font-size:9px;flex-shrink:0" onclick="savePin('${r}','mp-${r}')">GUARDAR</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('mfoot').innerHTML=`<button class="bc" onclick="cm()">CERRAR</button>`;
+  document.getElementById('modal').classList.add('open');
+}
+async function savePin(rl,inputId){
+  const el=document.getElementById(inputId);if(!el)return;
+  const v=el.value.trim();
+  if(v.length!==4||!/^\d{4}$/.test(v)){toast('PIN debe ser 4 dígitos','err');return;}
+  PINS[rl]=v;await savePins();el.value='';
+  toast('PIN de '+{puerta:'Puerta',autorizaciones:'Autorizaciones',admin:'Admin'}[rl]+' actualizado');
+}
+
+// ── MODAL DETAIL/EGRESO ──
+function om(mode,id){
+  const r=R.find(x=>x.id===id);
+  document.getElementById('mtit').textContent=mode==='salida'?'🚪 REGISTRAR EGRESO':'📄 DETALLE';
+  if(mode==='salida'&&r){
+    document.getElementById('mbody').innerHTML=`
+      <div class="ibox">
+        <div style="font-size:14px;font-weight:700;margin-bottom:3px">${r.nombre}</div>
+        <div style="font-size:10px;color:#94a3b8">${r.doc} · ${r.tipo}</div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px">${r.unidad}</div>
+        <div style="font-size:10px;color:#0284c7;margin-top:4px">Ingresó: ${fdt(r.entrada)}</div>
+        <div style="font-size:10px;color:#64748b">Personas: ${r.cant||1}</div>
+      </div>
+      <div class="wbox">⚠️ Se registrará la salida ahora. Estado → <strong>Egresado</strong>.</div>`;
+    document.getElementById('mfoot').innerHTML=`<button class="bpg" onclick="reEgreso(${r.id})">🚪 CONFIRMAR EGRESO</button><button class="bc" onclick="cm()">CANCELAR</button>`;
+  } else if(mode==='ver'&&r){
+    const fotoH=r.foto?`<div class="di" style="grid-column:1/-1"><div class="dl">FOTO DEL ID</div><img src="${r.foto}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:5px"/></div>`:'';
+    const obsH=r.obs?`<div class="di" style="grid-column:1/-1"><div class="dl">OBSERVACIONES</div><div class="dv" style="font-weight:400;color:#64748b;font-size:10px">${r.obs}</div></div>`:'';
+    document.getElementById('mbody').innerHTML=`<div class="dg">
+      ${[['NOMBRE',r.nombre],['DOCUMENTO',r.doc],['TIPO',r.tipo],['DESTINO',r.unidad],['PLACA',r.placa||'Sin vehículo'],['PERSONAS',r.cant||1],['AUTORIZADO POR',r.guardia||'—'],['ESTADO',r.estado],['INGRESO AUTORIZAD.',r.fechaAutorizada?fdt(r.fechaAutorizada):'Inmediato'],['ENTRADA REAL',r.entrada?fdt(r.entrada):'Pendiente'],['SALIDA',r.salida?fdt(r.salida):'—'],['FECHA LÍMITE',r.fechaLim?fd(r.fechaLim)+' 23:59':'Sin límite'],['REG. POR',{puerta:'Puerta',autorizaciones:'Autorizaciones',admin:'Admin'}[r.por]||r.por||'—']].map(([l,v])=>`<div class="di"><div class="dl">${l}</div><div class="dv">${v}</div></div>`).join('')}
+      ${fotoH}${obsH}
+    </div>`;
+    document.getElementById('mfoot').innerHTML=`<button class="bc" onclick="cm()">CERRAR</button>`;
+  }
+  document.getElementById('modal').classList.add('open');
+}
+function cm(){document.getElementById('modal').classList.remove('open');}
+
+// ── PHOTO ──
+function dzDrag(e){e.preventDefault();document.getElementById('dz').classList.add('drag');}
+function dzLeave(){document.getElementById('dz').classList.remove('drag');}
+function dzDrop(e){e.preventDefault();dzLeave();const f=e.dataTransfer.files[0];if(f)ldPhoto(f);}
+function fileChg(e){const f=e.target.files[0];if(f)ldPhoto(f);}
+function ldPhoto(f){const r2=new FileReader();r2.onload=ev=>{photo=ev.target.result;const p=document.getElementById('pimg'),c=document.getElementById('pclr');if(p){p.src=ev.target.result;p.style.display='block';}if(c)c.style.display='block';};r2.readAsDataURL(f);}
+function clrPhoto(e){if(e)e.stopPropagation();photo=null;const p=document.getElementById('pimg'),c=document.getElementById('pclr');if(p){p.src='';p.style.display='none';}if(c)c.style.display='none';}
+document.addEventListener('paste',e=>{
+  if(cv!=='registro')return;
+  const items=e.clipboardData?.items;if(!items)return;
+  for(const it of items){if(it.type.startsWith('image/')){ldPhoto(it.getAsFile());break;}}
+});
+
+// ── SCANNER ──
+function toggleScan(){
+  scanOn=!scanOn;
+  const btn=document.getElementById('sctgl'),st=document.getElementById('scst');
+  if(btn){btn.textContent=scanOn?'DESACTIVAR LECTOR':'ACTIVAR LECTOR';btn.classList.toggle('on',scanOn);}
+  if(st){st.textContent=scanOn?'⬤ ACTIVO':'⬤ INACTIVO';st.className='scst'+(scanOn?' on':'');}
+  if(scanOn){document.getElementById('scanHidden').focus();toast('📡 Lector activo — escanee la cédula');}
+  else{scanBuf='';clearTimeout(scanTimer);}
+}
+function onScanKey(e){
+  if(!scanOn)return;
+  clearTimeout(scanTimer);
+  if(e.key==='Enter'){if(scanBuf.length>5)parseCedula(scanBuf);scanBuf='';e.preventDefault();return;}
+  if(e.key.length===1){scanBuf+=e.key;e.preventDefault();}
+  scanTimer=setTimeout(()=>{if(scanBuf.length>5)parseCedula(scanBuf);scanBuf='';},200);
+}
+function onScanInput(e){const v=e.target.value;if(v&&v.length>5){parseCedula(v);e.target.value='';}}
+function parseCedula(raw){
+  let cedula='',nombre='';
+  const m=raw.match(/(\d{3}[-\s]?\d{7}[-\s]?\d|\d{11})/);
+  if(m){const d=m[0].replace(/[-\s]/g,'');cedula=d.slice(0,3)+'-'+d.slice(3,10)+'-'+d.slice(10);}
+  const cleaned=raw.replace(/\d{3}[-\s]?\d{7}[-\s]?\d|\d{11}/g,'§').replace(/[^A-ZÁÉÍÓÚÜÑ\s§]/gi,' ').trim();
+  const parts=cleaned.split(/§|\s{2,}|\n|\r|;|@|,/).map(p=>p.trim().replace(/\s+/g,' ')).filter(p=>p.length>1&&/[A-Z]/i.test(p));
+  if(parts.length>=2)nombre=parts.slice(0,2).join(' ');else if(parts.length===1)nombre=parts[0];
+  if(cedula){const el=document.getElementById('fd');if(el){el.value=cedula;flashGreen(el);}}
+  if(nombre){const el=document.getElementById('fn');if(el){el.value=nombre;flashGreen(el);}}
+  const ind=document.getElementById('scind');if(ind){ind.classList.add('vis');setTimeout(()=>ind.classList.remove('vis'),3000);}
+  toast('📡 Cédula: '+(cedula||'leída')+(nombre?' · '+nombre:''));
+  setTimeout(()=>{
+    const next=['ft','fp','ftr','fpi','fcant','fg2'].find(id=>{const el=document.getElementById(id);return el&&(el.tagName==='SELECT'?el.value==='':el.value.trim()==='');});
+    if(next)document.getElementById(next).focus();
+  },150);
+}
+function flashGreen(el){el.style.background='#dcfce7';setTimeout(()=>{el.style.background='';},2500);}
+
+// ── REGISTRO ──
+async function regIngreso(){
+  const n=document.getElementById('fn').value.trim();
+  const d=document.getElementById('fd').value.trim();
+  const tipo=document.getElementById('ft').value;
+  const t=document.getElementById('ftr').value;
+  const placa=document.getElementById('fp').value.trim();
+  const numprop=document.getElementById('fpi').value.trim();
+  const cantRaw=document.getElementById('fcant').value.trim();
+  const oficial=document.getElementById('fg2').value.trim();
+
+  if(!n||!d||!tipo||!t||!placa||!numprop||!cantRaw||!oficial){toast('Complete todos los campos obligatorios (*)','err');return;}
+  const cant=parseInt(cantRaw);
+  if(isNaN(cant)||cant<1){toast('Cantidad de personas inválida','err');return;}
+
+  let entrada=null,estado='',fechaAutorizada=null,fechaLim=null;
+
+  if(role==='autorizaciones'){
+    const fauth=document.getElementById('fauth').value;
+    if(!fauth){toast('Seleccione la fecha/hora de ingreso autorizado (*)','err');return;}
+    const authDt=new Date(fauth);
+    if(authDt<=new Date(Date.now()+59000)){toast('La fecha/hora debe ser al menos 1 minuto en el futuro','err');return;}
+    fechaAutorizada=authDt.toISOString();
+    estado='Pendiente';
+    const ffla=document.getElementById('ffla').value;
+    fechaLim=ffla?(ffla+'T23:59:00'):null;
+  } else {
+    entrada=now();
+    estado='En Recinto';
+    const ffl=document.getElementById('ffl').value;
+    fechaLim=ffl?(ffl+'T23:59:00'):null;
+  }
+
+  R.unshift({id:nid++,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,cant:cant,fechaAutorizada:fechaAutorizada,fechaLim:fechaLim,entrada:entrada,salida:null,estado:estado,guardia:oficial,obs:document.getElementById('fo').value,foto:photo,por:role});
+  limpiar();
+  await saveR({records:R,nid:nid});
+  toast(role==='autorizaciones'?'📋 Autorización registrada: '+n:'✅ Ingreso registrado: '+n);
+  rd();updPendBadge();
+}
+
+async function reEgreso(id){
+  R=R.map(r=>r.id===id?{...r,salida:now(),estado:'Egresado'}:r);
+  cm();await saveR({records:R,nid:nid});toast('Egreso registrado');
+  rd();if(cv==='historial')rh();if(cv==='autview')raut();if(cv==='config')ra();updPendBadge();
+}
+
+function limpiar(){
+  ['fn','fd','fp','fpi','fg2','fo','fcant','ffl','fauth','ffla'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['ft','ftr'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  clrPhoto(null);
+  if(role==='autorizaciones')setMinAuth();
+}
+
+// ── TOAST ──
+function toast(msg,type='suc'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='suc'?'✅ ':type==='err'?'❌ ':'⚠️ ')+msg;
+  t.className='toast show t'+type;
+  setTimeout(()=>t.className='toast',3200);
+}
+</script>
+</body>
+</html>
