@@ -2,7 +2,7 @@
   "name": "SECUREGATE 2.0",
   "short_name": "SECUREGATE",
   "description": "Control de Acceso · Condominio Puerto Bahía",
-  "start_url": "https://wildenyberges.github.io/SECUREGATE/SECUREGATE_2.0_V2.html",
+  "start_url": "https://wildenyberges.github.io/SECUREGATE/",
   "scope": "https://wildenyberges.github.io/SECUREGATE/",
   "display": "standalone",
   "orientation": "portrait",
