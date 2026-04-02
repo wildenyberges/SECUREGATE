@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>SECUREGATE 2.0 — v11.0 [2026-03-31]</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="theme-color" content="#0284c7"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="SECUREGATE"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -1338,7 +1344,7 @@ async function init(){
 // ── LOGIN ──
 function pickRole(r){
   pendingRole=r;pin='';updDots();document.getElementById('perr').textContent='';
-  ['autorizaciones','admin','analoga'].forEach(x=>document.getElementById('rb-'+x).classList.toggle('sel',x===r));
+  ['admin','analoga'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.classList.toggle('sel',x===r);});
 }
 function updDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('on',i<pin.length);}
 function pk(k){
@@ -2268,11 +2274,15 @@ async function vIntentarLogin(){
   const usr=document.getElementById('vusr-input').value.trim().toUpperCase();
   const err=document.getElementById('vperr');
   if(!usr){err.textContent='Ingrese su usuario.';vPin='';vUpdDots();return;}
-  // Validar contra Firebase sg/users_aut
-  const snap=await db.ref('sg/users_aut/'+usr).get();
-  if(snap.exists()&&snap.val().pin===vPin){
+  // Usar USERS_AUT en memoria (ya sincronizado por el listener)
+  let userData=USERS_AUT[usr];
+  // Si no está en memoria, intentar Firebase directamente
+  if(!userData){
+    try{const snap=await db.ref('sg/users_aut/'+usr).get();if(snap.exists())userData=snap.val();}catch(e){}
+  }
+  if(userData&&userData.pin===vPin){
     vUser=usr;
-    vUserDesc=snap.val().desc||usr;
+    vUserDesc=userData.desc||usr;
     sessionStorage.setItem('sg_villa_user',usr);
     sessionStorage.setItem('sg_villa_desc',vUserDesc);
     document.getElementById('villaLoginScreen').style.display='none';
