@@ -1731,11 +1731,10 @@ async function regIngreso(){
   const entrada=now(),estado='En Recinto';
   const ffl=document.getElementById('ffl')?.value||'';
   const fechaLim=ffl?(ffl+'T23:59:00'):null;
-  const newId=nid++;
+  const newId=Date.now();
   const newRec={id:newId,nombre:n,doc:d,tipo:tipo,unidad:t+' - '+numprop,placa:placa,cant:cant,fechaAutorizada:fechaAutorizada,fechaLim:fechaLim,entrada:entrada,salida:null,estado:estado,guardia:oficial,obs:document.getElementById('fo')?.value||'',foto:photo,por:role};
   limpiar();
   await dbSetRecord(newRec);
-  await dbSetNid(nid);
   toast('✅ Ingreso registrado: '+n);
   rd();updPendBadge();
 }
@@ -1980,7 +1979,7 @@ async function aRegIngreso(){
   const nombreInput=(document.getElementById('a-fn')?.value||'').trim();
   const docInput=(document.getElementById('a-fd')?.value||'').trim();
 
-  const newId=nid++;
+  const newId=Date.now();
   const snapCant=aCantVal,snapVeh=aVehVal;
   const newRecAna={
     id:newId,
@@ -2006,7 +2005,6 @@ async function aRegIngreso(){
   };
   aLimpiar();
   await dbSetRecord(newRecAna);
-  await dbSetNid(nid);
   toast('✅ Ingreso registrado — '+snapCant+' persona'+(snapCant!==1?'s':'')+', '+snapVeh+' vehículo'+(snapVeh!==1?'s':''));
   rd();updPendBadge();
 }
@@ -2136,7 +2134,7 @@ async function aRegistrarSalida(){
   const ts=now();
   const labels={hogar:'Artículos Hogar',vehiculo:'Vehículo',motor:'Motor',yate:'Yate',electro:'Electrodoméstico',bancocina:'Baño/Cocina',otros:'Otros'};
   const rec={
-    id:nid++,
+    id:Date.now(),
     nombre:quien,
     doc:'[Ver foto cédula]',
     tipo:'Salida de Artículos',
@@ -2151,7 +2149,7 @@ async function aRegistrarSalida(){
     items_salida:JSON.stringify(aSalItems),
     por:'analoga',villa_user:null
   };
-  await dbSetRecord(rec);await dbSetNid(nid);
+  await dbSetRecord(rec);
   document.getElementById('asal-conf-sub').innerHTML='🏠 '+prop+'<br>👤 Portador: <strong>'+quien+'</strong><br>✍️ Autorizado por: <strong>'+validador+'</strong>';
   document.getElementById('asal-form').style.display='none';
   document.getElementById('asal-confirm').style.display='block';
@@ -2474,11 +2472,9 @@ async function vRegistrarAcceso(){
     por:'villa',villa_user:vUser,villa_desc:vUserDesc,
     villa_codigo:codigo,vigencia:info.label,vigencia_egreso:esEgreso
   };
-  // Usar nid del sistema principal
-  const newId=nid++;
-  rec.id=newId;
+  // ID único por timestamp
+  rec.id=Date.now();
   await dbSetRecord(rec);
-  await dbSetNid(nid);
   // Guardar contador en Firebase
   db.ref('sg/villa_counts/'+vUser).update({aut:vAutCount}).catch(()=>{});
   // Mostrar confirmación
@@ -2596,7 +2592,7 @@ async function vRegistrarSalida(){
   if(!validador){vtost('Indique VALIDADO POR','err');return;}
   const codigo=vUser+'-SAL-'+String(vSalCount++).padStart(3,'0');
   const rec={
-    id:nid++,
+    id:Date.now(),
     nombre:quien,
     doc:'[Ver foto cédula]',
     tipo:VCAT_LABELS[vm02CatSel]||vm02CatSel,
@@ -2612,7 +2608,6 @@ async function vRegistrarSalida(){
     villa_codigo:codigo,villa_modulo:2
   };
   await dbSetRecord(rec);
-  await dbSetNid(nid);
   db.ref('sg/villa_counts/'+vUser).update({sal:vSalCount}).catch(()=>{});
   document.getElementById('vm02-conf-code').textContent=codigo+' · '+vUser;
   document.getElementById('vm02-conf-sub').innerHTML='👤 Portador: <strong>'+quien+'</strong><br>✍️ Validado por: <strong>'+validador+'</strong><br>📝 '+desc.slice(0,80)+(desc.length>80?'...':'');
