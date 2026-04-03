@@ -609,6 +609,7 @@ textarea{resize:vertical;min-height:56px}
         </tr></thead><tbody id="tba"></tbody></table>
       </div></div>
       <button class="be2" style="width:100%;padding:10px;font-size:11px;margin-top:4px" onclick="delAllAdmin()">🗑 ELIMINAR REGISTROS PUERTA Y ADMIN</button>
+      <button class="bs2" style="width:100%;padding:10px;font-size:11px;margin-top:6px" onclick="exportCSV()">⬇️ DESCARGAR REGISTROS CSV</button>
 
       <!-- USUARIOS DE VILLA -->
       <div class="sec" style="margin-top:20px"><span class="bar" style="background:#16a34a"></span>USUARIOS DE AUTORIZACIONES (VILLAS)</div>
@@ -1173,10 +1174,24 @@ setInterval(()=>{
 function ssd(s){const d=document.getElementById('sdot');if(d)d.className='sdot '+s;const l=document.getElementById('slbl');if(l)l.textContent={ok:'SYNC OK',sy:'GUARDANDO',er:'SIN SYNC'}[s]||'SYNC';}
 
 // Escribe un registro individual (no toca otros)
+// ── CAMPOS DE FOTO — se separan del record para no sobrecargar el listener ──
+const FOTO_FIELDS=['foto','fotosArray','fotoPlaca','fotosPlacaArray','foto_ced','vm02FotoCed','aSalFotoCed'];
+
 async function dbSetRecord(rec){
   ssd('sy');
   try{
-    await db.ref('sg/records/'+rec.id).set(rec);
+    // Separar fotos del record principal
+    const photos={};
+    const lean={...rec};
+    FOTO_FIELDS.forEach(f=>{
+      if(lean[f]){photos[f]=lean[f];delete lean[f];}
+    });
+    // Guardar metadata (liviana) en sg/records
+    await db.ref('sg/records/'+rec.id).set(lean);
+    // Guardar fotos en sg/photos (solo si las hay)
+    if(Object.keys(photos).length){
+      await db.ref('sg/photos/'+rec.id).set(photos);
+    }
     ssd('ok');
   }catch(e){ssd('er');console.error(e);}
 }
@@ -1188,20 +1203,24 @@ async function dbUpdateRecord(id,fields){
     ssd('ok');
   }catch(e){ssd('er');console.error(e);}
 }
-// Elimina un registro individual
+// Elimina un registro individual (datos + fotos)
 async function dbDeleteRecord(id){
   ssd('sy');
   try{
     await db.ref('sg/records/'+id).remove();
+    await db.ref('sg/photos/'+id).remove();
     ssd('ok');
   }catch(e){ssd('er');console.error(e);}
 }
-// Elimina múltiples registros por ID
+// Elimina múltiples registros por ID (datos + fotos)
 async function dbDeleteRecords(ids){
   ssd('sy');
   try{
     const upd={};
-    ids.forEach(id=>{upd['sg/records/'+id]=null;});
+    ids.forEach(id=>{
+      upd['sg/records/'+id]=null;
+      upd['sg/photos/'+id]=null;
+    });
     await db.ref().update(upd);
     ssd('ok');
   }catch(e){ssd('er');console.error(e);}
@@ -1613,6 +1632,32 @@ async function delAllAdmin(){
   await dbDeleteRecords(ids);toast('Registros de Puerta y Admin eliminados','wrn');ra();rd();updPendBadge();
 }
 
+function exportCSV(){
+  if(!R.length){toast('Sin registros para exportar','err');return;}
+  const headers=['ID','NOMBRE','DOCUMENTO','TIPO','DESTINO','PLACA','PERSONAS','VEHÍCULOS','ESTADO','INGRESO AUTORIZADO','ENTRADA','SALIDA','FECHA LÍMITE','REGISTRADO POR','GUARDIA','OBSERVACIONES'];
+  const porMap={'admin':'Admin','analoga':'Puerta Principal','villa':'Villa'};
+  const esc=v=>{if(v==null)return'';const s=String(v).replace(/"/g,'""');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s}"`:s;};
+  const rows=R.map(r=>[
+    r.id,r.nombre,r.doc,r.tipo,r.unidad,r.placa||'',r.cant||1,r.vehiculos||0,
+    r.estado,
+    r.fechaAutorizada?fdt(r.fechaAutorizada):'Inmediato',
+    r.entrada?fdt(r.entrada):'—',
+    r.salida?fdt(r.salida):'—',
+    r.fechaLim?fd(r.fechaLim)+' 23:59':'—',
+    porMap[r.por]||r.por||'—',
+    r.guardia||'—',
+    r.obs||''
+  ].map(esc).join(','));
+  const csv='\uFEFF'+headers.join(',')+'\n'+rows.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='SECUREGATE_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ CSV descargado — '+R.length+' registros');
+}
+
 async function saveEmail(){
   const v=document.getElementById('emIn')?.value.trim();
   if(!v||!v.includes('@')){toast('Ingrese un correo válido','err');return;}
@@ -1658,14 +1703,25 @@ function om(mode,id){
       <div class="wbox">⚠️ Se registrará la salida ahora. Estado → <strong>Egresado</strong>.</div>`;
     document.getElementById('mfoot').innerHTML=`<button class="bpg" onclick="reEgreso(${r.id})">🚪 CONFIRMAR EGRESO</button><button class="bc" onclick="cm()">CANCELAR</button>`;
   }else if(mode==='ver'&&r){
-    const fotoH=r.foto?`<div class="di" style="grid-column:1/-1"><div class="dl">FOTO DEL ID</div><img src="${r.foto}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:5px"/></div>`:'';
-    const fotoPlacaH=r.fotoPlaca?`<div class="di" style="grid-column:1/-1"><div class="dl">FOTO DE PLACA</div><img src="${r.fotoPlaca}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:5px"/></div>`:'';
     const obsH=r.obs?`<div class="di" style="grid-column:1/-1"><div class="dl">OBSERVACIONES</div><div class="dv" style="font-weight:400;color:#64748b;font-size:12px">${r.obs}</div></div>`:'';
     document.getElementById('mbody').innerHTML=`<div class="dg">
       ${[['NOMBRE',r.nombre],['DOCUMENTO',r.doc],['TIPO',r.tipo],['DESTINO',r.unidad],['PLACA',r.placa||'Sin vehículo'],['PERSONAS',r.cant||1],['VEHÍCULOS',r.vehiculos||'—'],['AUTORIZADO POR',r.guardia||'—'],['ESTADO',r.estado],['INGRESO AUTORIZAD.',r.fechaAutorizada?fdt(r.fechaAutorizada):'Inmediato'],['ENTRADA REAL',r.entrada?fdt(r.entrada):'Pendiente'],['SALIDA',r.salida?fdt(r.salida):'—'],['FECHA LÍMITE',r.fechaLim?fd(r.fechaLim)+' 23:59':'Sin límite'],['REG. POR',{autorizaciones:'Autorizaciones',admin:'Admin',analoga:'Puerta Principal'}[r.por]||'—']].map(([l,v])=>`<div class="di"><div class="dl">${l}</div><div class="dv">${v}</div></div>`).join('')}
-      ${fotoH}${fotoPlacaH}${obsH}
+      ${obsH}
+      <div id="modal-fotos" style="grid-column:1/-1;font-size:11px;color:#94a3b8;padding:6px 0">⏳ Cargando fotos...</div>
     </div>`;
     document.getElementById('mfoot').innerHTML=`<button class="bc" onclick="cm()">CERRAR</button>`;
+    // Cargar fotos bajo demanda desde sg/photos
+    db.ref('sg/photos/'+r.id).get().then(snap=>{
+      const fotoDiv=document.getElementById('modal-fotos');
+      if(!fotoDiv)return;
+      if(snap.exists()){
+        const p=snap.val();
+        let html='';
+        if(p.foto)html+=`<div class="di" style="grid-column:1/-1"><div class="dl">FOTO DEL ID</div><img src="${p.foto}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:5px"/></div>`;
+        if(p.fotoPlaca)html+=`<div class="di" style="grid-column:1/-1"><div class="dl">FOTO DE PLACA</div><img src="${p.fotoPlaca}" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:5px"/></div>`;
+        fotoDiv.innerHTML=html||'';
+      }else{fotoDiv.innerHTML='';}
+    }).catch(()=>{const d=document.getElementById('modal-fotos');if(d)d.innerHTML='';});
   }
   document.getElementById('modal').classList.add('open');
 }
